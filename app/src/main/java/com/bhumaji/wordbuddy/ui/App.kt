@@ -70,21 +70,43 @@ sealed interface Screen {
     data object Builder : Screen
     data object Coach : Screen
     data object Abc : Screen
+    data object CoachToday : Screen
+    data object Stories : Screen
+    data object Talk : Screen
+    data object Adventure : Screen
     data object Freeze : Screen
     data object Shop : Screen
     data object Stickers : Screen
     data object Parent : Screen
 }
 
+/** A Daily Adventure station in progress (to tick it off when she comes back). */
+private data class StationRun(val station: Station, val startEarned: Int, val startMs: Long)
+
 @Composable
 fun WordBuddyApp(app: AppServices) {
     var screen by remember { mutableStateOf<Screen>(Screen.Home) }
     var world by remember { mutableStateOf<World?>(null) }
     var greeted by remember { mutableStateOf(false) }
+    var run by remember { mutableStateOf<StationRun?>(null) }
+    val sessionStart = remember { System.currentTimeMillis() }
+    var breakShown by remember { mutableStateOf(false) }
+    var showBreak by remember { mutableStateOf(false) }
 
-    fun up(s: Screen): Screen = when (s) {
+    fun finishStation() {
+        val r = run ?: return
+        val earnedThere = app.store.earned - r.startEarned
+        val seconds = (System.currentTimeMillis() - r.startMs) / 1000
+        if (earnedThere >= 5 || seconds >= 60) app.store.markStation(r.station.name)
+        run = null
+    }
+
+    fun up(s: Screen): Screen = if (run != null && s != Screen.Adventure && s != Screen.Home) {
+        finishStation()
+        Screen.Adventure
+    } else when (s) {
         is Screen.Play -> Screen.Pick(s.mode)
-        is Screen.Pick, is Screen.Quiz, Screen.Move, Screen.Freeze, Screen.Builder, Screen.Coach, Screen.Abc -> world?.let { Screen.InWorld(it) } ?: Screen.Home
+        is Screen.Pick, is Screen.Quiz, Screen.Move, Screen.Freeze, Screen.Builder, Screen.Coach, Screen.Abc, Screen.Stories, Screen.Talk -> world?.let { Screen.InWorld(it) } ?: Screen.Home
         else -> Screen.Home
     }
     val back = { screen = up(screen) }
@@ -101,6 +123,7 @@ fun WordBuddyApp(app: AppServices) {
                     world = it
                     screen = Screen.InWorld(it)
                 },
+                onAdventure = { screen = Screen.Adventure },
                 onShop = { screen = Screen.Shop },
                 onStickers = { screen = Screen.Stickers },
                 onParent = { screen = Screen.Parent },
@@ -115,6 +138,8 @@ fun WordBuddyApp(app: AppServices) {
                     Activity.Builder -> Screen.Builder
                     Activity.Coach -> Screen.Coach
                     Activity.Abc -> Screen.Abc
+                    Activity.StoryShelf -> Screen.Stories
+                    Activity.Talk -> Screen.Talk
                     is Activity.Soon -> s
                 }
             }
@@ -136,9 +161,28 @@ fun WordBuddyApp(app: AppServices) {
             Screen.Builder -> SentenceBuilderScreen(app, onBack = back)
             Screen.Coach -> WordCoachScreen(app, onBack = back)
             Screen.Abc -> AlphabetScreen(app, onBack = back)
+            Screen.CoachToday -> WordCoachScreen(app, onBack = back, focusToday = true)
+            Screen.Stories -> StoryShelfScreen(app, onBack = back)
+            Screen.Talk -> ConversationScreen(app, onBack = back)
+            Screen.Adventure -> AdventureScreen(app, onBack = back) { st ->
+                run = StationRun(st, app.store.earned, System.currentTimeMillis())
+                screen = st.target()
+            }
             Screen.Shop -> ShopScreen(app, onBack = back)
             Screen.Stickers -> StickerScreen(app, onBack = back)
             Screen.Parent -> ParentScreen(app, onBack = back)
+        }
+        if (showBreak) BreakReminder(app) { showBreak = false }
+    }
+
+    // Gentle break reminder once the session length the grown-up chose has passed
+    LaunchedEffect(screen) {
+        val minutes = app.store.sessionMinutes
+        if (screen == Screen.Home && !breakShown &&
+            System.currentTimeMillis() - sessionStart > minutes * 60_000L
+        ) {
+            breakShown = true
+            showBreak = true
         }
     }
 }

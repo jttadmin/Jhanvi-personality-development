@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.2.0
+- 📖 **Story Kingdom**: 5 animated picture stories read by Coco: fill in the missing word, story questions, "what happens next?", say-along reading (+15 coins per story)
+- 💬 **Conversation Planet**: chat with Coco in 5 topics (hello, snack time, toys, feelings, school); picture answers for shy moments, 💡 sentence hints, and gentle full-sentence practice
+- 🗺️ **Daily Adventure**: Letters & Sounds → 5 new words → Say them → Build sentences → Story, then a glowing treasure chest (+20). Length is set by grown-ups (10–30 min)
+- 🔁 **Spaced repetition**: words come back after 1, 2, 4, 7, 14 days; hard words return the next day; Word Coach mixes in due words
+- 🌿 Friendly break reminder after the chosen session length; no streaks and no penalty for missed days
+- Grown-ups: session length and a learning plan (today's words, words due for revision)
+
 ## v4.1.0
 - 🧱 Sentence City **Word Builder**: tap word cards into order across 4 levels (simple, doing, describing, questions), cards coloured by job (who / does / what…), then say the whole sentence
 - 🐼 Pronunciation Palace **Word Coach**: slow → normal → clap the syllables (BUT-TER-FLY) → beginning sound → sentence → "Can you say…?" with gentle feedback and unlimited replays

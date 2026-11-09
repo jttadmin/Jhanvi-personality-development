@@ -34,6 +34,9 @@ data class Category(
 object WordBank {
     const val ALL = "all"
 
+    /** Special group: today's new words from the Daily Adventure. */
+    const val TODAY = "today"
+
     val everything = Category(ALL, "Everything", "✨", Color(0xFF6C4AB6))
 
     private val easyCategories = listOf(

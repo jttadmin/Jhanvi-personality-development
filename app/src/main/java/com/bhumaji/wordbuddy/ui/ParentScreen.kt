@@ -140,6 +140,26 @@ private fun ParentDashboard(app: AppServices, onBack: () -> Unit) {
             }
 
             item {
+                val due = remember(version) { store.dueWords(WordBank.visibleWords) }
+                val today = remember(version) { store.todaysNewWords(WordBank.visibleWords) }
+                Panel {
+                    Text("Learning plan", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Text("Today's new words: " + today.joinToString("  ") { it.emoji.ifEmpty { "🎨" } + " " + it.text }, fontSize = 16.sp)
+                    Text(
+                        if (due.isEmpty()) "Nothing to revise today 🎉" else "Due for revision (${due.size}): " +
+                            due.take(12).joinToString("  ") { it.emoji.ifEmpty { "🎨" } + " " + it.text },
+                        fontSize = 16.sp,
+                    )
+                    Text(
+                        "Spaced repetition: a word she gets right comes back after 1, 2, 4, 7, then 14 days. " +
+                            "A word she finds hard comes back the next day.",
+                        fontSize = 13.sp,
+                        color = Soft,
+                    )
+                }
+            }
+
+            item {
                 Panel {
                     Text("Thinking games", fontSize = 22.sp, fontWeight = FontWeight.Bold)
                     Game.entries.forEach { g ->
@@ -190,6 +210,27 @@ private fun ParentDashboard(app: AppServices, onBack: () -> Unit) {
                             },
                         )
                     }
+                    Text("Daily session length", fontSize = 18.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(10, 15, 20, 30).forEach { m ->
+                            val on = store.sessionMinutes == m
+                            Text(
+                                "$m min",
+                                Modifier
+                                    .clip(RoundedCornerShape(50))
+                                    .background(if (on) Purple else Color(0xFFEDE7F6))
+                                    .clickable { store.changeSessionMinutes(m) }
+                                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                                color = if (on) Color.White else Ink,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                    }
+                    Text(
+                        "Sets the Daily Adventure length and when a friendly break reminder appears.",
+                        fontSize = 13.sp,
+                        color = Soft,
+                    )
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text("Show easy words too", fontSize = 18.sp)

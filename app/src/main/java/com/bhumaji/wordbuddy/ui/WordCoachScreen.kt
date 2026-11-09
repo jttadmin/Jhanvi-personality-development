@@ -53,12 +53,21 @@ import kotlinx.coroutines.launch
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun WordCoachScreen(app: AppServices, onBack: () -> Unit) {
+fun WordCoachScreen(app: AppServices, onBack: () -> Unit, focusToday: Boolean = false) {
     val speaker = app.speaker
     val store = app.store
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val words = remember { store.practiceOrder(WordBank.visibleWords) }
+    // Daily Adventure: today's new words plus words due for revision; otherwise everything.
+    val words = remember {
+        if (focusToday) {
+            (store.todaysNewWords(WordBank.visibleWords) + store.dueWords(WordBank.visibleWords).take(4))
+                .distinctBy { it.id }
+        } else {
+            val due = store.dueWords(WordBank.visibleWords).take(5)
+            (due + store.practiceOrder(WordBank.visibleWords)).distinctBy { it.id }
+        }
+    }
     var index by remember { mutableIntStateOf(0) }
     val word = words[index % words.size]
     val parts = remember(word) { Syllables.split(word.text) }

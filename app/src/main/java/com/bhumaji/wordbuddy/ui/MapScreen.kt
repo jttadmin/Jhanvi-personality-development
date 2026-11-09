@@ -90,6 +90,18 @@ sealed interface Activity {
         override val subtitle = "Letters, sounds, writing"
     }
 
+    data object StoryShelf : Activity {
+        override val title = "Picture Stories"
+        override val emoji = "📖"
+        override val subtitle = "Read with Coco"
+    }
+
+    data object Talk : Activity {
+        override val title = "Talk with Coco"
+        override val emoji = "💬"
+        override val subtitle = "Chat like friends"
+    }
+
     data object Builder : Activity {
         override val title = "Word Builder"
         override val emoji = "🧱"
@@ -163,8 +175,8 @@ enum class World(
                 Activity.Builder,
                 Activity.Words(Mode.SENTENCE, "Say whole sentences"),
             )
-            STORY -> listOf(Activity.Soon("Picture Stories", "📖"))
-            CONVO -> listOf(Activity.Soon("Talk with Coco", "💬"))
+            STORY -> listOf(Activity.StoryShelf)
+            CONVO -> listOf(Activity.Talk)
             PLAY -> listOf(Activity.MoveLikeMe, Activity.FreezeDance)
         }
 
@@ -218,6 +230,7 @@ fun MapScreen(
     greeted: Boolean,
     onGreeted: () -> Unit,
     onWorld: (World) -> Unit,
+    onAdventure: () -> Unit,
     onShop: () -> Unit,
     onStickers: () -> Unit,
     onParent: () -> Unit,
@@ -267,6 +280,22 @@ fun MapScreen(
                 accessory = app.store.costumeEmoji,
             )
             SpeechBubble("$hello Where shall we go today?", Modifier.weight(1f))
+        }
+
+        val doneToday = remember(app.store.version) { app.store.adventureDone().size }
+        BigTile(
+            "🗺️",
+            "Today's Adventure",
+            Color(0xFF26A69A),
+            Modifier
+                .fillMaxWidth()
+                .height(120.dp)
+                .padding(bottom = 12.dp),
+            if (doneToday >= Station.entries.size) "All done! Open your treasure 🎁" else "$doneToday of ${Station.entries.size} stops · about ${app.store.sessionMinutes} min",
+        ) {
+            app.sfx.pop()
+            app.speaker.say("Today's adventure!")
+            onAdventure()
         }
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {

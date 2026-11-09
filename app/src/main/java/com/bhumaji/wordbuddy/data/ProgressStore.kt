@@ -15,6 +15,9 @@ data class WordStats(
     val sayGood: Int = 0,
     val findGood: Int = 0,
     val findMiss: Int = 0,
+    /** Spaced-repetition box 0–5 and the day (epoch day) it is next due. */
+    val box: Int = 0,
+    val due: Int = 0,
 ) {
     val successes: Int get() = sayGood + findGood
     private val misses: Int get() = (sayTries - sayGood) + findMiss
@@ -31,7 +34,7 @@ data class WordStats(
     val needsPractice: Boolean
         get() = status != Status.LEARNED && misses >= 2 && misses > successes
 
-    fun encode() = "$heard,$sayTries,$sayGood,$findGood,$findMiss"
+    fun encode() = "$heard,$sayTries,$sayGood,$findGood,$findMiss,$box,$due"
 
     companion object {
         fun decode(raw: String?): WordStats {
@@ -39,7 +42,7 @@ data class WordStats(
             val p = raw.split(",").map { it.toIntOrNull() ?: 0 }
             return WordStats(
                 p.getOrElse(0) { 0 }, p.getOrElse(1) { 0 }, p.getOrElse(2) { 0 },
-                p.getOrElse(3) { 0 }, p.getOrElse(4) { 0 },
+                p.getOrElse(3) { 0 }, p.getOrElse(4) { 0 }, p.getOrElse(5) { 0 }, p.getOrElse(6) { 0 },
             )
         }
     }
@@ -136,11 +139,77 @@ class ProgressStore(context: Context) {
     }
 
     fun recordSay(word: Word, success: Boolean) = update(word) {
-        it.copy(sayTries = it.sayTries + 1, sayGood = it.sayGood + if (success) 1 else 0)
+        leitner(it.copy(sayTries = it.sayTries + 1, sayGood = it.sayGood + if (success) 1 else 0), success)
     }
 
     fun recordFind(word: Word, correct: Boolean) = update(word) {
-        if (correct) it.copy(findGood = it.findGood + 1) else it.copy(findMiss = it.findMiss + 1)
+        leitner(if (correct) it.copy(findGood = it.findGood + 1) else it.copy(findMiss = it.findMiss + 1), correct)
+    }
+
+    // ---------- Spaced repetition (Leitner boxes) ----------
+
+    fun today(): Int = java.time.LocalDate.now().toEpochDay().toInt()
+
+    /** Right answer: move up a box and wait longer. Wrong: back to box 1, see it again tomorrow. */
+    private fun leitner(s: WordStats, success: Boolean): WordStats {
+        val box = if (success) (s.box + 1).coerceAtMost(5) else 1
+        return s.copy(box = box, due = today() + INTERVALS[box])
+    }
+
+    /** Words she has met that are due for revision today, hardest first. */
+    fun dueWords(pool: List<Word>): List<Word> {
+        val t = today()
+        return pool.map { it to stats(it.id) }
+            .filter { (_, s) -> (s.heard > 0 || s.sayTries > 0) && s.due <= t }
+            .sortedBy { (_, s) -> s.box }
+            .map { it.first }
+    }
+
+    /** Today's new words (same list all day), chosen from words she hasn't met yet. */
+    fun todaysNewWords(pool: List<Word>, count: Int = 6): List<Word> {
+        val t = today()
+        if (prefs.getInt(KEY_DAILY_DAY, -1) == t) {
+            val ids = prefs.getString(KEY_DAILY_WORDS, "").orEmpty().split(",").toSet()
+            val saved = pool.filter { it.id in ids }
+            if (saved.isNotEmpty()) return saved
+        }
+        val fresh = pool.filter { stats(it.id).heard == 0 && it.color == null }.shuffled()
+        val picked = (fresh.ifEmpty { practiceOrder(pool) }).take(count)
+        prefs.edit()
+            .putInt(KEY_DAILY_DAY, t)
+            .putString(KEY_DAILY_WORDS, picked.joinToString(",") { it.id })
+            .apply()
+        return picked
+    }
+
+    // ---------- Daily adventure & session length ----------
+
+    var sessionMinutes by mutableIntStateOf(prefs.getInt(KEY_SESSION, 15))
+        private set
+
+    fun changeSessionMinutes(m: Int) {
+        sessionMinutes = m
+        prefs.edit().putInt(KEY_SESSION, m).apply()
+    }
+
+    fun adventureDone(): Set<String> =
+        if (prefs.getInt(KEY_ADV_DAY, -1) == today()) {
+            prefs.getString(KEY_ADV_DONE, "").orEmpty().split(",").filter { it.isNotEmpty() }.toSet()
+        } else {
+            emptySet()
+        }
+
+    fun markStation(id: String) {
+        val done = adventureDone() + id
+        prefs.edit().putInt(KEY_ADV_DAY, today()).putString(KEY_ADV_DONE, done.joinToString(",")).apply()
+        version++
+    }
+
+    /** True once per day: the treasure chest can be opened. */
+    fun claimAdventureReward(): Boolean {
+        if (prefs.getInt(KEY_ADV_REWARD, -1) == today()) return false
+        prefs.edit().putInt(KEY_ADV_REWARD, today()).apply()
+        return true
     }
 
     /** Adds coins; returns true if this unlocked a new sticker. */
@@ -158,7 +227,8 @@ class ProgressStore(context: Context) {
     }
 
     fun reset() {
-        prefs.edit().clear().putBoolean(KEY_SLOW, slowVoice).putBoolean(KEY_EASY, includeEasy).apply()
+        prefs.edit().clear().putBoolean(KEY_SLOW, slowVoice).putBoolean(KEY_EASY, includeEasy)
+            .putInt(KEY_SESSION, sessionMinutes).apply()
         stars = 0
         earned = 0
         owned.clear()
@@ -181,5 +251,12 @@ class ProgressStore(context: Context) {
         private const val KEY_OWNED = "owned"
         private const val KEY_COSTUME = "costume"
         private const val KEY_THEME = "theme"
+        private const val KEY_DAILY_DAY = "daily_day"
+        private const val KEY_DAILY_WORDS = "daily_words"
+        private const val KEY_SESSION = "session_minutes"
+        private const val KEY_ADV_DAY = "adv_day"
+        private const val KEY_ADV_DONE = "adv_done"
+        private const val KEY_ADV_REWARD = "adv_reward"
+        private val INTERVALS = intArrayOf(0, 1, 2, 4, 7, 14)
     }
 }

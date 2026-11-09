@@ -34,7 +34,9 @@ import com.bhumaji.wordbuddy.data.WordBank
 fun LearnScreen(category: String, app: AppServices, onBack: () -> Unit) {
     val speaker = app.speaker
     val store = app.store
-    val words = remember(category) { WordBank.inCategory(category) }
+    val words = remember(category) {
+        if (category == WordBank.TODAY) store.todaysNewWords(WordBank.visibleWords) else WordBank.inCategory(category)
+    }
     var index by remember(category) { mutableIntStateOf(0) }
     val word = words[index % words.size]
 
@@ -60,7 +62,7 @@ fun LearnScreen(category: String, app: AppServices, onBack: () -> Unit) {
     }
 
     Column(Modifier.fillMaxSize()) {
-        TopBar(WordBank.category(category).title, onBack, store.stars)
+        TopBar(if (category == WordBank.TODAY) "Today's New Words" else WordBank.category(category).title, onBack, store.stars)
         Text(
             "${index + 1} / ${words.size}",
             Modifier.fillMaxWidth(),
