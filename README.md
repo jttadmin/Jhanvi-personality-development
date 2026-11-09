@@ -68,3 +68,14 @@ app/src/main/java/com/bhumaji/wordbuddy/
   ui/                     Home, Learn, Say, Find, Grown-ups screens (Jetpack Compose)
 ```
 Stack: Kotlin 2.0, Jetpack Compose (Material 3), AGP 8.5, minSdk 26 (Android 8+), targetSdk 34.
+
+## Releases & versions
+- Every push to `main` builds a test APK (Actions → *Build APK* → Artifacts).
+- To publish a version, tag it. The **Release** workflow builds a signed APK and attaches it to a GitHub Release:
+  ```bash
+  git tag v3.1.0 && git push origin v3.1.0
+  ```
+  The tag sets the app version: `v3.1.0` → versionName `3.1.0`, versionCode `30100`. Always go up.
+- All releases are signed with the same key (repo secrets `SIGNING_KEYSTORE_BASE64` + `SIGNING_PASSWORD`),
+  so a new version installs **over** the old one and keeps her stars, photos and progress.
+  Keep a backup of the keystore. If it's lost, future versions can't update the installed app.

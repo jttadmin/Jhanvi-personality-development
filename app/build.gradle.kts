@@ -12,16 +12,33 @@ android {
         applicationId = "com.bhumaji.wordbuddy"
         minSdk = 26          // Android 8.0+
         targetSdk = 34
-        versionCode = 3
-        versionName = "3.0"
+        // Set by the release workflow from the git tag (v3.1.0 -> 3.1.0 / 30100).
+        versionCode = (project.findProperty("appVersionCode") as String?)?.toInt() ?: 30000
+        versionName = (project.findProperty("appVersionName") as String?) ?: "3.0.0-dev"
+    }
+
+    // One permanent key (from GitHub secrets) so every new version installs as an
+    // update over the old one and keeps her stars and photos.
+    val keystorePath: String? = System.getenv("SIGNING_KEYSTORE_PATH")
+    signingConfigs {
+        create("release") {
+            if (keystorePath != null) {
+                storeFile = file(keystorePath)
+                storePassword = System.getenv("SIGNING_PASSWORD")
+                keyAlias = System.getenv("SIGNING_KEY_ALIAS") ?: "wordbuddy"
+                keyPassword = System.getenv("SIGNING_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            // Signed with the debug key so the release APK installs on your own phone.
-            // Create a real keystore before ever publishing to the Play Store.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (keystorePath != null) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 
