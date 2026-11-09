@@ -1,6 +1,13 @@
 package com.bhumaji.wordbuddy.ui
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -97,13 +104,29 @@ fun TopBar(title: String, onBack: () -> Unit, stars: Int? = null) {
     }
 }
 
+/** Coin counter that counts up and pops when she earns coins. */
 @Composable
 fun StarBadge(count: Int) {
+    val shown by animateIntAsState(count, tween(700), label = "coins")
+    var last by remember { mutableIntStateOf(count) }
+    val bump = remember { Animatable(1f) }
+    LaunchedEffect(count) {
+        if (count > last) {
+            bump.snapTo(1.35f)
+            bump.animateTo(1f, spring(dampingRatio = 0.35f, stiffness = 300f))
+        }
+        last = count
+    }
     Text(
-        "⭐ $count",
+        "🪙 $shown",
         Modifier
+            .graphicsLayer {
+                scaleX = bump.value
+                scaleY = bump.value
+            }
+            .shadow(3.dp, RoundedCornerShape(50))
             .clip(RoundedCornerShape(50))
-            .background(Sun)
+            .background(Brush.verticalGradient(listOf(Color(0xFFFFE082), Sun)))
             .padding(horizontal = 16.dp, vertical = 8.dp),
         fontSize = 22.sp,
         fontWeight = FontWeight.Bold,

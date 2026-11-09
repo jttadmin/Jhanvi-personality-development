@@ -1,5 +1,14 @@
 # Changelog
 
+## v4.0.0 — WordWonder Kids
+- New name and tagline: **WordWonder Kids — Play. Discover. Speak. Shine!**
+- Adventure map with 7 worlds: Alphabet Forest, Vocabulary Kingdom, Pronunciation Palace,
+  Sentence City, Story Kingdom, Conversation Planet, Move & Play
+- Four animated teachers drawn in the app: Bunny (words), Panda (speaking), Kitty (sentences), Coco (stories) — they blink, talk and celebrate
+- 🪙 Coins: new word 5, good pronunciation 5, sentence 10, games 3–5, effort counts too
+- 🛍️ Reward Shop: costumes (worn by her buddy and the teachers), backgrounds, toy box, badges. No real money, ever
+- Animated coin counter and themed, floating backgrounds
+
 ## v3.1.0
 - Animated actions: pictures and her buddy jump, dance, swim, spin, fly, climb, sleep…
 - 14 new action words (jump, hop, spin, march, stomp, stretch, tiptoe, crawl…), animals move too

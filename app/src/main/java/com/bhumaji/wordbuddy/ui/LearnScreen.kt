@@ -50,7 +50,11 @@ fun LearnScreen(category: String, app: AppServices, onBack: () -> Unit) {
 
     LaunchedEffect(word.id, speaker.ready) {
         if (speaker.ready) {
-            store.markHeard(word)
+            if (store.markHeard(word)) {
+                // "Learning a new word: 5 coins"
+                store.addStars(5)
+                app.sfx.chime()
+            }
             speaker.say(word.text, word.sentence)
         }
     }

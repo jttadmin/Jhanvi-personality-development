@@ -55,7 +55,7 @@ private val stickers = listOf(
 @Composable
 fun StickerScreen(app: AppServices, onBack: () -> Unit) {
     val stars = app.store.stars
-    val unlocked = (stars / ProgressStore.STARS_PER_STICKER).coerceAtMost(stickers.size)
+    val unlocked = (app.store.earned / ProgressStore.STARS_PER_STICKER).coerceAtMost(stickers.size)
     val name = app.profile.name.trim()
     var celebrating by remember { mutableStateOf(-1) }
     var confetti by remember { mutableIntStateOf(0) }
@@ -71,7 +71,7 @@ fun StickerScreen(app: AppServices, onBack: () -> Unit) {
         Column(Modifier.fillMaxSize()) {
             TopBar("My Stickers", onBack, stars)
             Text(
-                "Every 10 ⭐ unlocks a new sticker!  ($unlocked / ${stickers.size})",
+                "Every ${ProgressStore.STARS_PER_STICKER} 🪙 earned unlocks a new sticker!  ($unlocked / ${stickers.size})",
                 Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
@@ -114,8 +114,8 @@ fun StickerScreen(app: AppServices, onBack: () -> Unit) {
                                     app.speaker.say(line)
                                 } else {
                                     app.sfx.boing()
-                                    val more = (i + 1) * ProgressStore.STARS_PER_STICKER - stars
-                                    app.speaker.say("Get $more more stars to open this one!")
+                                    val more = (i + 1) * ProgressStore.STARS_PER_STICKER - app.store.earned
+                                    app.speaker.say("Earn $more more coins to open this one!")
                                 }
                             }
                             .padding(8.dp),
@@ -133,7 +133,7 @@ fun StickerScreen(app: AppServices, onBack: () -> Unit) {
                         } else {
                             Text("🔒", fontSize = 48.sp)
                             Text(
-                                "${(i + 1) * ProgressStore.STARS_PER_STICKER} ⭐",
+                                "${(i + 1) * ProgressStore.STARS_PER_STICKER} 🪙",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Soft,

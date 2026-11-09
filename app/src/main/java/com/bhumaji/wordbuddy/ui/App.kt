@@ -62,45 +62,56 @@ enum class Mode(val title: String, val emoji: String) {
 
 sealed interface Screen {
     data object Home : Screen
+    data class InWorld(val world: World) : Screen
     data class Pick(val mode: Mode) : Screen
     data class Play(val mode: Mode, val category: String) : Screen
     data class Quiz(val game: Game) : Screen
     data object Move : Screen
     data object Freeze : Screen
+    data object Shop : Screen
     data object Stickers : Screen
     data object Parent : Screen
-}
-
-private fun parentOf(s: Screen): Screen = when (s) {
-    is Screen.Play -> Screen.Pick(s.mode)
-    else -> Screen.Home
 }
 
 @Composable
 fun WordBuddyApp(app: AppServices) {
     var screen by remember { mutableStateOf<Screen>(Screen.Home) }
+    var world by remember { mutableStateOf<World?>(null) }
     var greeted by remember { mutableStateOf(false) }
-    val back = { screen = parentOf(screen) }
+
+    fun up(s: Screen): Screen = when (s) {
+        is Screen.Play -> Screen.Pick(s.mode)
+        is Screen.Pick, is Screen.Quiz, Screen.Move, Screen.Freeze -> world?.let { Screen.InWorld(it) } ?: Screen.Home
+        else -> Screen.Home
+    }
+    val back = { screen = up(screen) }
 
     BackHandler(enabled = screen != Screen.Home) { back() }
 
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(PlayBackground)
-    ) {
+    ThemedBackground(com.bhumaji.wordbuddy.data.Shop.theme(app.store.theme)) {
         when (val s = screen) {
-            Screen.Home -> HomeScreen(
+            Screen.Home -> MapScreen(
                 app = app,
                 greeted = greeted,
                 onGreeted = { greeted = true },
-                onPick = { screen = Screen.Pick(it) },
-                onGame = { screen = Screen.Quiz(it) },
-                onMove = { screen = Screen.Move },
-                onFreeze = { screen = Screen.Freeze },
+                onWorld = {
+                    world = it
+                    screen = Screen.InWorld(it)
+                },
+                onShop = { screen = Screen.Shop },
                 onStickers = { screen = Screen.Stickers },
                 onParent = { screen = Screen.Parent },
             )
+
+            is Screen.InWorld -> WorldScreen(s.world, app, onBack = back) { act ->
+                screen = when (act) {
+                    is Activity.Words -> Screen.Pick(act.mode)
+                    is Activity.Quiz -> Screen.Quiz(act.game)
+                    Activity.MoveLikeMe -> Screen.Move
+                    Activity.FreezeDance -> Screen.Freeze
+                    is Activity.Soon -> s
+                }
+            }
 
             is Screen.Pick -> CategoryScreen(s.mode, app, onBack = back) { cat ->
                 screen = Screen.Play(s.mode, cat)
@@ -116,160 +127,10 @@ fun WordBuddyApp(app: AppServices) {
             is Screen.Quiz -> QuizScreen(s.game, app, onBack = back)
             Screen.Move -> MoveScreen(app, onBack = back)
             Screen.Freeze -> FreezeScreen(app, onBack = back)
-
+            Screen.Shop -> ShopScreen(app, onBack = back)
             Screen.Stickers -> StickerScreen(app, onBack = back)
             Screen.Parent -> ParentScreen(app, onBack = back)
         }
-    }
-}
-
-@Composable
-fun HomeScreen(
-    app: AppServices,
-    greeted: Boolean,
-    onGreeted: () -> Unit,
-    onPick: (Mode) -> Unit,
-    onGame: (Game) -> Unit,
-    onMove: () -> Unit,
-    onFreeze: () -> Unit,
-    onStickers: () -> Unit,
-    onParent: () -> Unit,
-) {
-    val name = app.profile.name.trim()
-    var talking by remember { mutableStateOf(false) }
-    val hello = if (name.isBlank()) "Hello! Let's play!" else "Hi $name! Let's play!"
-
-    LaunchedEffect(app.speaker.ready) {
-        if (app.speaker.ready && !greeted) {
-            onGreeted()
-            talking = true
-            app.speaker.say(hello, "What shall we learn today?", onDone = { talking = false })
-        }
-    }
-
-    val modeColors = mapOf(
-        Mode.LEARN to Purple, Mode.SAY to Coral, Mode.FIND to Grass, Mode.SENTENCE to Color(0xFF29B6F6),
-    )
-    val modeSubtitles = mapOf(
-        Mode.LEARN to "Look and listen",
-        Mode.SAY to "Say it like me",
-        Mode.FIND to "Tap the picture",
-        Mode.SENTENCE to "Say whole sentences",
-    )
-    val gameColors = mapOf(
-        Game.RHYME to Color(0xFFEC407A), Game.SOUNDS to Color(0xFF5C6BC0),
-        Game.OPPOSITES to Color(0xFFFF7043), Game.THINK to Color(0xFF26A69A),
-    )
-
-    Column(
-        Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                "Word Buddy",
-                Modifier.weight(1f),
-                fontSize = 30.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = Purple,
-            )
-            StarBadge(app.store.stars)
-        }
-
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            BuddyAvatar(
-                app.profile.photo(0),
-                if (talking) Mood.TALK else Mood.IDLE,
-                120.dp,
-                Modifier.clickable {
-                    app.sfx.pop()
-                    talking = true
-                    app.speaker.say(hello, onDone = { talking = false })
-                },
-            )
-            SpeechBubble(hello, Modifier.weight(1f))
-        }
-
-        SectionTitle("Words")
-        TilePairs(Mode.entries) { mode, m ->
-            BigTile(mode.emoji, mode.title, modeColors.getValue(mode), m, modeSubtitles[mode]) {
-                app.sfx.pop()
-                app.speaker.say(mode.title)
-                onPick(mode)
-            }
-        }
-        SectionTitle("Move & play")
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(bottom = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            BigTile(
-                "🕺", "Move Like Me", Color(0xFFFF7043),
-                Modifier
-                    .weight(1f)
-                    .height(150.dp),
-                "Hop, stomp, spin!",
-            ) {
-                app.sfx.pop()
-                app.speaker.say("Move like me!")
-                onMove()
-            }
-            BigTile(
-                "🧊", "Freeze Dance", Color(0xFF29B6F6),
-                Modifier
-                    .weight(1f)
-                    .height(150.dp),
-                "Dance… and FREEZE!",
-            ) {
-                app.sfx.pop()
-                app.speaker.say("Freeze dance!")
-                onFreeze()
-            }
-        }
-        SectionTitle("Thinking games")
-        TilePairs(Game.entries) { game, m ->
-            BigTile(game.emoji, game.title, gameColors.getValue(game), m, game.subtitle) {
-                app.sfx.pop()
-                app.speaker.say(game.title)
-                onGame(game)
-            }
-        }
-        Spacer(Modifier.height(14.dp))
-        BigTile(
-            "🏆",
-            "My Stickers",
-            Sun,
-            Modifier
-                .fillMaxWidth()
-                .height(110.dp),
-            "Collect them with stars",
-        ) {
-            app.sfx.pop()
-            app.speaker.say("My stickers!")
-            onStickers()
-        }
-
-        Spacer(Modifier.height(20.dp))
-        Text(
-            "🔒 Grown-ups",
-            Modifier
-                .clip(RoundedCornerShape(50))
-                .background(Color(0x14000000))
-                .clickable(onClick = onParent)
-                .padding(horizontal = 20.dp, vertical = 10.dp),
-            fontSize = 16.sp,
-            color = Soft,
-        )
     }
 }
 
@@ -313,38 +174,3 @@ fun CategoryScreen(
     }
 }
 
-@Composable
-private fun SectionTitle(text: String) {
-    Text(
-        text,
-        Modifier
-            .fillMaxWidth()
-            .padding(top = 14.dp, bottom = 8.dp),
-        fontSize = 20.sp,
-        fontWeight = FontWeight.ExtraBold,
-        color = Ink,
-    )
-}
-
-/** Lays tiles out two per row. */
-@Composable
-private fun <T> TilePairs(items: List<T>, tile: @Composable (T, Modifier) -> Unit) {
-    items.chunked(2).forEach { pair ->
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(bottom = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            pair.forEach { item ->
-                tile(
-                    item,
-                    Modifier
-                        .weight(1f)
-                        .height(150.dp),
-                )
-            }
-            if (pair.size == 1) Spacer(Modifier.weight(1f))
-        }
-    }
-}

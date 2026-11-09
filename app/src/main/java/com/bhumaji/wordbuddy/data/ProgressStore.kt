@@ -3,6 +3,7 @@ package com.bhumaji.wordbuddy.data
 import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
@@ -48,8 +49,45 @@ data class WordStats(
 class ProgressStore(context: Context) {
     private val prefs = context.getSharedPreferences("word_buddy_progress", Context.MODE_PRIVATE)
 
+    /** Coins she can spend (shown as 🪙). Stored under the old "stars" key. */
     var stars by mutableIntStateOf(prefs.getInt(KEY_STARS, 0))
         private set
+
+    /** All coins ever earned (spending doesn't lower it). Unlocks stickers. */
+    var earned by mutableIntStateOf(prefs.getInt(KEY_EARNED, prefs.getInt(KEY_STARS, 0)))
+        private set
+
+    /** Shop items she owns. */
+    val owned = mutableStateListOf<String>().apply {
+        addAll(prefs.getStringSet(KEY_OWNED, emptySet()).orEmpty())
+    }
+
+    var costume by mutableStateOf(prefs.getString(KEY_COSTUME, null))
+        private set
+
+    var theme by mutableStateOf(prefs.getString(KEY_THEME, "meadow") ?: "meadow")
+        private set
+
+    /** Emoji of the costume she is wearing, if any. */
+    val costumeEmoji: String? get() = Shop.item(costume)?.emoji
+
+    fun buy(item: ShopItem): Boolean {
+        if (item.id in owned || stars < item.price) return false
+        stars -= item.price
+        owned.add(item.id)
+        prefs.edit().putInt(KEY_STARS, stars).putStringSet(KEY_OWNED, owned.toSet()).apply()
+        return true
+    }
+
+    fun wearCostume(id: String?) {
+        costume = id
+        prefs.edit().putString(KEY_COSTUME, id).apply()
+    }
+
+    fun useTheme(id: String) {
+        theme = id
+        prefs.edit().putString(KEY_THEME, id).apply()
+    }
 
     /** Bumped on every change so screens showing progress recompose. */
     var version by mutableIntStateOf(0)
@@ -90,7 +128,12 @@ class ProgressStore(context: Context) {
         version++
     }
 
-    fun markHeard(word: Word) = update(word) { it.copy(heard = it.heard + 1) }
+    /** Returns true the first time she meets this word. */
+    fun markHeard(word: Word): Boolean {
+        val first = stats(word.id).heard == 0
+        update(word) { it.copy(heard = it.heard + 1) }
+        return first
+    }
 
     fun recordSay(word: Word, success: Boolean) = update(word) {
         it.copy(sayTries = it.sayTries + 1, sayGood = it.sayGood + if (success) 1 else 0)
@@ -100,12 +143,13 @@ class ProgressStore(context: Context) {
         if (correct) it.copy(findGood = it.findGood + 1) else it.copy(findMiss = it.findMiss + 1)
     }
 
-    /** Adds stars; returns true if this unlocked a new sticker. */
+    /** Adds coins; returns true if this unlocked a new sticker. */
     fun addStars(n: Int): Boolean {
-        val before = stars / STARS_PER_STICKER
+        val before = earned / STARS_PER_STICKER
         stars += n
-        prefs.edit().putInt(KEY_STARS, stars).apply()
-        return stars / STARS_PER_STICKER > before && before < STICKER_COUNT
+        earned += n
+        prefs.edit().putInt(KEY_STARS, stars).putInt(KEY_EARNED, earned).apply()
+        return earned / STARS_PER_STICKER > before && before < STICKER_COUNT
     }
 
     fun changeSlowVoice(on: Boolean) {
@@ -116,6 +160,10 @@ class ProgressStore(context: Context) {
     fun reset() {
         prefs.edit().clear().putBoolean(KEY_SLOW, slowVoice).putBoolean(KEY_EASY, includeEasy).apply()
         stars = 0
+        earned = 0
+        owned.clear()
+        costume = null
+        theme = "meadow"
         version++
     }
 
@@ -124,10 +172,14 @@ class ProgressStore(context: Context) {
         words.shuffled().sortedBy { stats(it.id).successes.coerceAtMost(3) }
 
     companion object {
-        const val STARS_PER_STICKER = 10
+        const val STARS_PER_STICKER = 50
         const val STICKER_COUNT = 12
         private const val KEY_STARS = "stars"
         private const val KEY_SLOW = "slow_voice"
         private const val KEY_EASY = "include_easy"
+        private const val KEY_EARNED = "earned"
+        private const val KEY_OWNED = "owned"
+        private const val KEY_COSTUME = "costume"
+        private const val KEY_THEME = "theme"
     }
 }

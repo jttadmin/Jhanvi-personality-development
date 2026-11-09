@@ -1,4 +1,6 @@
-# Word Buddy 🌟
+# WordWonder Kids 🌟
+
+*Play. Discover. Speak. Shine!*
 
 An offline Android app to help a 4-year-old learn new English words and say them clearly.
 It has no backend, no accounts, no ads and **no INTERNET permission**. Everything stays on the phone.

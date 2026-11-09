@@ -62,7 +62,7 @@ fun SayScreen(category: String, app: AppServices, onBack: () -> Unit, sentenceMo
     val word = words[index % words.size]
     // In Sentence Star she repeats the whole sentence instead of one word.
     val target = if (sentenceMode) word.sentence else word.text
-    val reward = if (sentenceMode) 5 else 3
+    val reward = if (sentenceMode) 10 else 5
 
     var phase by remember { mutableStateOf(Phase.WAITING) }
     var mood by remember { mutableStateOf(Mood.IDLE) }
@@ -102,7 +102,7 @@ fun SayScreen(category: String, app: AppServices, onBack: () -> Unit, sentenceMo
         val p = app.cheer()
         val newSticker = store.addStars(stars)
         starsWon = stars
-        message = "$p ⭐⭐⭐"
+        message = "$p +$stars 🪙"
         mood = Mood.CHEER
         phase = Phase.RESULT
         confetti++
@@ -131,13 +131,13 @@ fun SayScreen(category: String, app: AppServices, onBack: () -> Unit, sentenceMo
             Match.Result.CLOSE -> {
                 starsWon = maxOf(starsWon, 1)
                 store.recordSay(word, success = false)
-                store.addStars(1)
+                store.addStars(2)
                 app.sfx.pop()
                 if (tries >= 3) {
-                    message = "Nice try! ⭐"
+                    message = "Nice try! +2 🪙"
                     moveOn("Nice try! Let's try a new word.")
                 } else {
-                    message = "Almost! Listen again… ⭐"
+                    message = "Almost! Listen again… +2 🪙"
                     phase = Phase.RESULT
                     mood = Mood.TALK
                     speaker.say("Almost!", "Listen.", target, "Now you!", onDone = { relisten++ })
@@ -243,7 +243,7 @@ fun SayScreen(category: String, app: AppServices, onBack: () -> Unit, sentenceMo
                     .padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                BuddyAvatar(app.profile.photo(index), mood, 84.dp)
+                BuddyAvatar(app.profile.photo(index), mood, 84.dp, accessory = app.store.costumeEmoji)
                 SpeechBubble(message.ifBlank { "Let's talk!" }, Modifier.weight(1f))
             }
 

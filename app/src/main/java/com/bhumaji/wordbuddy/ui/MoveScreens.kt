@@ -90,7 +90,7 @@ fun MoveScreen(app: AppServices, onBack: () -> Unit) {
         countdown = 0
         phase = MovePhase.DONE
         confetti++
-        val newSticker = app.store.addStars(2)
+        val newSticker = app.store.addStars(5)
         if (newSticker) app.sfx.tada() else app.sfx.chime()
         val lines = mutableListOf(app.cheer(), move.praise)
         if (newSticker) lines.add("You got a new sticker!")
@@ -263,7 +263,7 @@ fun FreezeScreen(app: AppServices, onBack: () -> Unit) {
                 delay(3000)
                 freezes++
                 confetti++
-                val newSticker = app.store.addStars(1)
+                val newSticker = app.store.addStars(2)
                 if (newSticker) app.sfx.tada()
                 val next = DanceStyle.entries.filter { it != style }.random()
                 style = next

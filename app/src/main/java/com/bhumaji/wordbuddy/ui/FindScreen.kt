@@ -81,7 +81,7 @@ fun FindScreen(category: String, app: AppServices, onBack: () -> Unit) {
             mood = Mood.CHEER
             confetti++
             if (wrong.isEmpty()) store.recordFind(target, correct = true)
-            val newSticker = store.addStars(1)
+            val newSticker = store.addStars(3)
             if (newSticker) app.sfx.tada() else app.sfx.chime()
             val lines = mutableListOf(app.cheer(), "That's the ${target.text}!")
             if (newSticker) lines.add("You got a new sticker!")
@@ -104,7 +104,7 @@ fun FindScreen(category: String, app: AppServices, onBack: () -> Unit) {
                     .padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                BuddyAvatar(app.profile.photo(round), mood, 80.dp)
+                BuddyAvatar(app.profile.photo(round), mood, 80.dp, accessory = app.store.costumeEmoji)
                 SpeechBubble(WordBank.findPrompt(target), Modifier.weight(1f))
                 RoundButton("🔊", Sky, {
                     mood = Mood.TALK

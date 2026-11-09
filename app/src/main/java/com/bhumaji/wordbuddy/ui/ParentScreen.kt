@@ -128,7 +128,7 @@ private fun ParentDashboard(app: AppServices, onBack: () -> Unit) {
                         Count("✅", learned, "Learned")
                         Count("🔁", practising, "Practising")
                         Count("🆕", notYet, "Not yet")
-                        Count("⭐", store.stars, "Stars")
+                        Count("🪙", store.stars, "Coins")
                     }
                     Spacer(Modifier.height(6.dp))
                     Text(

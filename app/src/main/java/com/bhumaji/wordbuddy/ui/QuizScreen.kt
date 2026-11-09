@@ -81,7 +81,7 @@ fun QuizScreen(game: Game, app: AppServices, onBack: () -> Unit) {
             streak = if (firstTry) streak + 1 else 0
             mood = Mood.CHEER
             confetti++
-            val newSticker = store.addStars(if (firstTry) 2 else 1)
+            val newSticker = store.addStars(if (firstTry) 5 else 2)
             if (newSticker) app.sfx.tada() else app.sfx.chime()
             val lines = mutableListOf(app.cheer(), quiz.success)
             if (streak > 0 && streak % 5 == 0) lines.add("$streak in a row! Amazing!")
@@ -106,7 +106,7 @@ fun QuizScreen(game: Game, app: AppServices, onBack: () -> Unit) {
                     .padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                BuddyAvatar(app.profile.photo(round), mood, 80.dp)
+                BuddyAvatar(app.profile.photo(round), mood, 80.dp, accessory = app.store.costumeEmoji)
                 SpeechBubble(quiz.question, Modifier.weight(1f))
                 RoundButton("🔊", Sky, { ask() }, Modifier.padding(start = 8.dp), size = 56.dp)
             }
