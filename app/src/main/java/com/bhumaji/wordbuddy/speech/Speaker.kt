@@ -8,7 +8,10 @@ import android.speech.tts.UtteranceProgressListener
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.Locale
+import kotlin.coroutines.resume
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -93,6 +96,15 @@ class Speaker(context: Context) {
             if (i == parts.lastIndex && onDone != null) callbacks[id] = onDone
             if (i > 0) tts.playSilentUtterance(350, TextToSpeech.QUEUE_ADD, "s$id")
             tts.speak(text, if (i == 0) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD, null, id)
+        }
+    }
+
+    /** Speak and wait until finished (gives up after 20 s so a game never gets stuck). */
+    suspend fun sayAndWait(vararg parts: String, extraSlow: Boolean = false) {
+        withTimeoutOrNull(20_000) {
+            suspendCancellableCoroutine<Unit> { cont ->
+                say(*parts, extraSlow = extraSlow, onDone = { if (cont.isActive) cont.resume(Unit) })
+            }
         }
     }
 

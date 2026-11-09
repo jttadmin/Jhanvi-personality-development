@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.bhumaji.wordbuddy.data.Motion
 import com.bhumaji.wordbuddy.data.Word
 
 val Purple = Color(0xFF6C4AB6)
@@ -135,8 +136,8 @@ fun RoundButton(
 
 /** The picture for a word: an emoji, or a coloured circle for colour words. */
 @Composable
-fun WordPicture(word: Word, size: Dp, modifier: Modifier = Modifier) {
-    Box(modifier.size(size), contentAlignment = Alignment.Center) {
+fun WordPicture(word: Word, size: Dp, modifier: Modifier = Modifier, animate: Boolean = true) {
+    MotionBox(if (animate) word.motion else Motion.NONE, size, modifier) {
         val c = word.color
         if (c != null) {
             Box(

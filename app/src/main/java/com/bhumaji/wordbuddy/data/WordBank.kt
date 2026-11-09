@@ -18,6 +18,7 @@ data class Word(
     val category: String,
     val color: Color? = null,
     val alsoAccept: List<String> = emptyList(),
+    val motion: Motion = Motion.NONE,
 ) {
     val targets: List<String> get() = listOf(text) + alsoAccept
 }
@@ -175,9 +176,19 @@ object WordBank {
         nature("rainbow", "🌈", "A rainbow has many colours."),
     )
 
+    private val easyMotions = mapOf(
+        "dog" to Motion.WIGGLE, "cat" to Motion.NOD, "duck" to Motion.WADDLE, "fish" to Motion.SWIM,
+        "frog" to Motion.JUMP, "rabbit" to Motion.HOP, "horse" to Motion.RUN, "bird" to Motion.FLY,
+        "butterfly" to Motion.FLY, "monkey" to Motion.CLIMB, "car" to Motion.RUN, "bus" to Motion.RUN,
+        "train" to Motion.RUN, "aeroplane" to Motion.FLY, "boat" to Motion.SWIM, "ball" to Motion.JUMP,
+        "clock" to Motion.WAVE, "sun" to Motion.SPIN, "star" to Motion.CLAP, "rain" to Motion.SHAKE,
+        "hand" to Motion.WAVE,
+    )
+
     /** Every word, easy and advanced. */
-    val words: List<Word> =
-        AdvancedWords.words + animals + fruits + colours + bodyParts + vehicles + foods + homeThings + natureThings
+    val words: List<Word> = AdvancedWords.words +
+        (animals + fruits + colours + bodyParts + vehicles + foods + homeThings + natureThings)
+            .map { it.copy(motion = easyMotions[it.id] ?: Motion.NONE) }
 
     /** Words in the groups currently shown. */
     val visibleWords: List<Word>

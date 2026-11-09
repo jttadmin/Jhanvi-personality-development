@@ -284,7 +284,7 @@ private fun WordRow(w: Word, s: WordStats) {
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        WordPicture(w, 44.dp)
+        WordPicture(w, 44.dp, animate = false)
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
             Text(w.text, fontSize = 18.sp, fontWeight = FontWeight.Bold)

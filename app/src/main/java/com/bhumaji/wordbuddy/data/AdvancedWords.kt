@@ -24,7 +24,32 @@ internal object AdvancedWords {
     private fun w(cat: String, text: String, emoji: String, sentence: String, vararg alt: String) =
         Word(text.replace(" ", "_"), text, emoji, sentence, cat, alsoAccept = alt.toList())
 
-    val words: List<Word> = listOf(
+    /** Words that act out their meaning (see MotionBox). */
+    private val motions = mapOf(
+        "run" to Motion.RUN, "swim" to Motion.SWIM, "climb" to Motion.CLIMB, "dance" to Motion.DANCE,
+        "sleep" to Motion.SLEEP, "eat" to Motion.NOD, "drink" to Motion.NOD, "sing" to Motion.DANCE,
+        "cook" to Motion.SHAKE, "paint" to Motion.WAVE, "kick" to Motion.STOMP, "wash" to Motion.SHAKE,
+        "clap" to Motion.CLAP, "wave" to Motion.WAVE, "hug" to Motion.CLAP, "laugh" to Motion.SHAKE,
+        "think" to Motion.NOD, "ride" to Motion.RUN, "jump" to Motion.JUMP, "hop" to Motion.HOP,
+        "spin" to Motion.SPIN, "march" to Motion.STOMP, "stomp" to Motion.STOMP, "stretch" to Motion.STRETCH,
+        "wiggle" to Motion.WIGGLE, "tiptoe" to Motion.TIPTOE, "fly" to Motion.FLY, "crawl" to Motion.CRAWL,
+        "bounce" to Motion.JUMP, "shake" to Motion.SHAKE, "roll" to Motion.ROLL, "gallop" to Motion.RUN,
+        "kangaroo" to Motion.JUMP, "dolphin" to Motion.SWIM, "whale" to Motion.SWIM, "penguin" to Motion.WADDLE,
+        "octopus" to Motion.WIGGLE, "parrot" to Motion.FLY, "flamingo" to Motion.NOD, "crocodile" to Motion.CRAWL,
+        "turtle" to Motion.CRAWL, "monkey" to Motion.CLIMB, "squirrel" to Motion.CLIMB, "gorilla" to Motion.STOMP,
+        "bee" to Motion.FLY, "ladybird" to Motion.FLY, "mosquito" to Motion.FLY, "snail" to Motion.CRAWL,
+        "caterpillar" to Motion.CRAWL, "worm" to Motion.WIGGLE, "spider" to Motion.CLIMB, "cricket" to Motion.HOP,
+        "rocket" to Motion.FLY, "comet" to Motion.FLY, "planet" to Motion.SPIN, "satellite" to Motion.SPIN,
+        "earth" to Motion.SPIN, "windy" to Motion.SHAKE, "stormy" to Motion.SHAKE, "lightning" to Motion.SHAKE,
+        "happy" to Motion.JUMP, "excited" to Motion.HOP, "angry" to Motion.SHAKE, "scared" to Motion.SHAKE,
+        "sleepy" to Motion.SLEEP, "silly" to Motion.WIGGLE, "shy" to Motion.NOD, "fast" to Motion.RUN,
+        "slow" to Motion.CRAWL, "drum" to Motion.CLAP, "guitar" to Motion.DANCE, "bell" to Motion.WAVE,
+        "trumpet" to Motion.NOD, "bounce" to Motion.JUMP,
+    )
+
+    val words: List<Word> = rawWords.map { it.copy(motion = motions[it.id] ?: Motion.NONE) }
+
+    private val rawWords: List<Word> get() = listOf(
         // Wild animals
         w("wild", "giraffe", "🦒", "The giraffe has a very long neck."),
         w("wild", "kangaroo", "🦘", "The kangaroo carries her baby in a pouch."),
@@ -67,6 +92,20 @@ internal object AdvancedWords {
         w("actions", "laugh", "😂", "We laugh at a funny joke.", "laughing"),
         w("actions", "think", "🤔", "I think very hard.", "thinking"),
         w("actions", "ride", "🚴", "I ride my bicycle to the park.", "riding"),
+        w("actions", "jump", "🤾", "I jump high like a frog.", "jumping"),
+        w("actions", "hop", "🐇", "Hop, hop, hop on one foot.", "hopping"),
+        w("actions", "spin", "🌀", "Spin round and round.", "spinning"),
+        w("actions", "march", "💂", "March like a soldier: left, right!", "marching"),
+        w("actions", "stomp", "🦖", "Stomp like a big dinosaur!", "stomping"),
+        w("actions", "stretch", "🙆", "Stretch up to the sky.", "stretching"),
+        w("actions", "wiggle", "🍮", "The jelly wiggles and wobbles.", "wiggling"),
+        w("actions", "tiptoe", "🩰", "Tiptoe quietly like a mouse.", "tiptoeing", "tip toe"),
+        w("actions", "fly", "🕊️", "Birds fly high in the sky.", "flying"),
+        w("actions", "crawl", "👶", "Babies crawl on the floor.", "crawling"),
+        w("actions", "bounce", "🏀", "The ball bounces up and down.", "bouncing"),
+        w("actions", "shake", "🍃", "The leaves shake in the wind.", "shaking"),
+        w("actions", "roll", "🎳", "The ball rolls down the lane.", "rolling"),
+        w("actions", "gallop", "🏇", "The horse gallops very fast.", "galloping"),
 
         // Feelings
         w("feelings", "happy", "😀", "I feel happy when I play with friends."),

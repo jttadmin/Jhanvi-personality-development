@@ -65,6 +65,8 @@ sealed interface Screen {
     data class Pick(val mode: Mode) : Screen
     data class Play(val mode: Mode, val category: String) : Screen
     data class Quiz(val game: Game) : Screen
+    data object Move : Screen
+    data object Freeze : Screen
     data object Stickers : Screen
     data object Parent : Screen
 }
@@ -94,6 +96,8 @@ fun WordBuddyApp(app: AppServices) {
                 onGreeted = { greeted = true },
                 onPick = { screen = Screen.Pick(it) },
                 onGame = { screen = Screen.Quiz(it) },
+                onMove = { screen = Screen.Move },
+                onFreeze = { screen = Screen.Freeze },
                 onStickers = { screen = Screen.Stickers },
                 onParent = { screen = Screen.Parent },
             )
@@ -110,6 +114,8 @@ fun WordBuddyApp(app: AppServices) {
             }
 
             is Screen.Quiz -> QuizScreen(s.game, app, onBack = back)
+            Screen.Move -> MoveScreen(app, onBack = back)
+            Screen.Freeze -> FreezeScreen(app, onBack = back)
 
             Screen.Stickers -> StickerScreen(app, onBack = back)
             Screen.Parent -> ParentScreen(app, onBack = back)
@@ -124,6 +130,8 @@ fun HomeScreen(
     onGreeted: () -> Unit,
     onPick: (Mode) -> Unit,
     onGame: (Game) -> Unit,
+    onMove: () -> Unit,
+    onFreeze: () -> Unit,
     onStickers: () -> Unit,
     onParent: () -> Unit,
 ) {
@@ -196,6 +204,36 @@ fun HomeScreen(
                 app.sfx.pop()
                 app.speaker.say(mode.title)
                 onPick(mode)
+            }
+        }
+        SectionTitle("Move & play")
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            BigTile(
+                "🕺", "Move Like Me", Color(0xFFFF7043),
+                Modifier
+                    .weight(1f)
+                    .height(150.dp),
+                "Hop, stomp, spin!",
+            ) {
+                app.sfx.pop()
+                app.speaker.say("Move like me!")
+                onMove()
+            }
+            BigTile(
+                "🧊", "Freeze Dance", Color(0xFF29B6F6),
+                Modifier
+                    .weight(1f)
+                    .height(150.dp),
+                "Dance… and FREEZE!",
+            ) {
+                app.sfx.pop()
+                app.speaker.say("Freeze dance!")
+                onFreeze()
             }
         }
         SectionTitle("Thinking games")
