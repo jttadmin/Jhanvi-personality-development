@@ -78,6 +78,24 @@ sealed interface Activity {
         override val subtitle = "Hop, stomp, spin!"
     }
 
+    data object Coach : Activity {
+        override val title = "Word Coach"
+        override val emoji = "🐼"
+        override val subtitle = "Slow, clap, sound, say!"
+    }
+
+    data object Abc : Activity {
+        override val title = "ABC & Tracing"
+        override val emoji = "✏️"
+        override val subtitle = "Letters, sounds, writing"
+    }
+
+    data object Builder : Activity {
+        override val title = "Word Builder"
+        override val emoji = "🧱"
+        override val subtitle = "Put words in order"
+    }
+
     data object FreezeDance : Activity {
         override val title = "Freeze Dance"
         override val emoji = "🧊"
@@ -128,7 +146,7 @@ enum class World(
 
     val activities: List<Activity>
         get() = when (this) {
-            ALPHABET -> listOf(Activity.Quiz(Game.SOUNDS), Activity.Soon("ABC & Tracing", "✏️"))
+            ALPHABET -> listOf(Activity.Abc, Activity.Quiz(Game.SOUNDS))
             VOCAB -> listOf(
                 Activity.Words(Mode.LEARN, "Look and listen"),
                 Activity.Words(Mode.FIND, "Tap the picture"),
@@ -136,13 +154,14 @@ enum class World(
                 Activity.Quiz(Game.THINK),
             )
             PRONOUNCE -> listOf(
+                Activity.Coach,
                 Activity.Words(Mode.SAY, "Say it like me"),
+                Activity.Quiz(Game.SYLLABLES),
                 Activity.Quiz(Game.RHYME),
-                Activity.Soon("Syllable Clap", "👏"),
             )
             SENTENCE -> listOf(
+                Activity.Builder,
                 Activity.Words(Mode.SENTENCE, "Say whole sentences"),
-                Activity.Soon("Word Builder", "🧱"),
             )
             STORY -> listOf(Activity.Soon("Picture Stories", "📖"))
             CONVO -> listOf(Activity.Soon("Talk with Coco", "💬"))

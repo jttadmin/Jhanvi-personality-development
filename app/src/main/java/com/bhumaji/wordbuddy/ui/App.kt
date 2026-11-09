@@ -67,6 +67,9 @@ sealed interface Screen {
     data class Play(val mode: Mode, val category: String) : Screen
     data class Quiz(val game: Game) : Screen
     data object Move : Screen
+    data object Builder : Screen
+    data object Coach : Screen
+    data object Abc : Screen
     data object Freeze : Screen
     data object Shop : Screen
     data object Stickers : Screen
@@ -81,7 +84,7 @@ fun WordBuddyApp(app: AppServices) {
 
     fun up(s: Screen): Screen = when (s) {
         is Screen.Play -> Screen.Pick(s.mode)
-        is Screen.Pick, is Screen.Quiz, Screen.Move, Screen.Freeze -> world?.let { Screen.InWorld(it) } ?: Screen.Home
+        is Screen.Pick, is Screen.Quiz, Screen.Move, Screen.Freeze, Screen.Builder, Screen.Coach, Screen.Abc -> world?.let { Screen.InWorld(it) } ?: Screen.Home
         else -> Screen.Home
     }
     val back = { screen = up(screen) }
@@ -109,6 +112,9 @@ fun WordBuddyApp(app: AppServices) {
                     is Activity.Quiz -> Screen.Quiz(act.game)
                     Activity.MoveLikeMe -> Screen.Move
                     Activity.FreezeDance -> Screen.Freeze
+                    Activity.Builder -> Screen.Builder
+                    Activity.Coach -> Screen.Coach
+                    Activity.Abc -> Screen.Abc
                     is Activity.Soon -> s
                 }
             }
@@ -127,6 +133,9 @@ fun WordBuddyApp(app: AppServices) {
             is Screen.Quiz -> QuizScreen(s.game, app, onBack = back)
             Screen.Move -> MoveScreen(app, onBack = back)
             Screen.Freeze -> FreezeScreen(app, onBack = back)
+            Screen.Builder -> SentenceBuilderScreen(app, onBack = back)
+            Screen.Coach -> WordCoachScreen(app, onBack = back)
+            Screen.Abc -> AlphabetScreen(app, onBack = back)
             Screen.Shop -> ShopScreen(app, onBack = back)
             Screen.Stickers -> StickerScreen(app, onBack = back)
             Screen.Parent -> ParentScreen(app, onBack = back)

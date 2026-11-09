@@ -1,5 +1,11 @@
 # Changelog
 
+## v4.1.0
+- 🧱 Sentence City **Word Builder**: tap word cards into order across 4 levels (simple, doing, describing, questions), cards coloured by job (who / does / what…), then say the whole sentence
+- 🐼 Pronunciation Palace **Word Coach**: slow → normal → clap the syllables (BUT-TER-FLY) → beginning sound → sentence → "Can you say…?" with gentle feedback and unlimited replays
+- 👏 **Syllable Clap** game: "How many claps in elephant?"
+- ✏️ Alphabet Forest **ABC & Tracing**: A–Z with phonics (A says "ah", A is for apple) and finger tracing for capital and small letters
+
 ## v4.0.0 — WordWonder Kids
 - New name and tagline: **WordWonder Kids — Play. Discover. Speak. Shine!**
 - Adventure map with 7 worlds: Alphabet Forest, Vocabulary Kingdom, Pronunciation Palace,

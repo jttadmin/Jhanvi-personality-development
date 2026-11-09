@@ -23,6 +23,7 @@ enum class Game(val id: String, val title: String, val emoji: String, val subtit
     SOUNDS("sounds", "Sound Detective", "🔤", "What sound does it start with?"),
     OPPOSITES("opposites", "Opposites", "↔️", "Hot and cold, big and small"),
     THINK("think", "Think & Find", "🧠", "Use your brain!"),
+    SYLLABLES("syllables", "Syllable Clap", "👏", "How many claps?"),
 }
 
 object Games {
@@ -32,6 +33,33 @@ object Games {
         Game.SOUNDS -> sound()
         Game.OPPOSITES -> opposite()
         Game.THINK -> think()
+        Game.SYLLABLES -> syllables()
+    }
+
+    // ---------- Syllable Clap ----------
+    private val clapNumbers = listOf(Pic("one", "1️⃣"), Pic("two", "2️⃣"), Pic("three", "3️⃣"), Pic("four", "4️⃣"))
+
+    private fun syllables(): QuizRound {
+        val word = WordBank.visibleWords
+            .filter { it.color == null && Syllables.count(it.text) in 1..4 }
+            .let { pool ->
+                // more multi-syllable words: they are the interesting ones
+                val multi = pool.filter { Syllables.count(it.text) > 1 }
+                if (multi.isNotEmpty() && (0..3).random() > 0) multi.random() else pool.random()
+            }
+        val parts = Syllables.split(word.text)
+        val answer = clapNumbers[parts.size - 1]
+        val others = clapNumbers.filter { it != answer }.shuffled()
+        return build(answer, others) { options, idx ->
+            QuizRound(
+                question = "How many claps in ${word.text}?",
+                spoken = listOf("How many claps in", "${word.text}?", parts.joinToString(", ")),
+                prompt = word.emoji,
+                options = options,
+                answer = idx,
+                success = "${parts.joinToString(", ")}! ${answer.label.replaceFirstChar { it.uppercase() }} ${if (parts.size == 1) "clap" else "claps"}!",
+            )
+        }
     }
 
     private fun <T> build(answer: Pic, others: List<Pic>, make: (List<Pic>, Int) -> T): T {
