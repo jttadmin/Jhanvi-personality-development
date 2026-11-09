@@ -1,0 +1,270 @@
+package com.bhumaji.wordbuddy.ui
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.bhumaji.wordbuddy.data.ProgressStore
+import com.bhumaji.wordbuddy.data.Status
+import com.bhumaji.wordbuddy.data.Word
+import com.bhumaji.wordbuddy.data.WordBank
+import com.bhumaji.wordbuddy.data.WordStats
+import com.bhumaji.wordbuddy.speech.Speaker
+
+@Composable
+fun ParentScreen(speaker: Speaker, store: ProgressStore, onBack: () -> Unit) {
+    var unlocked by remember { mutableStateOf(false) }
+    if (unlocked) ParentDashboard(speaker, store, onBack) else ParentGate(onBack) { unlocked = true }
+}
+
+/** A small times-table question keeps a 4-year-old out of the settings. */
+@Composable
+private fun ParentGate(onBack: () -> Unit, onPass: () -> Unit) {
+    val a = remember { (3..9).random() }
+    val b = remember { (3..9).random() }
+    val answer = a * b
+    val choices = remember { listOf(answer, answer + a, answer - b).shuffled() }
+    var wrongTry by remember { mutableStateOf(false) }
+
+    Column(Modifier.fillMaxSize()) {
+        TopBar("Grown-ups", onBack)
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text("For grown-ups only 🙂", fontSize = 20.sp, color = Soft)
+            Spacer(Modifier.height(12.dp))
+            Text("What is $a × $b ?", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Ink)
+            Spacer(Modifier.height(20.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                choices.forEach { c ->
+                    Button(onClick = {
+                        if (c == answer) {
+                            onPass()
+                        } else {
+                            wrongTry = true
+                        }
+                    }) {
+                        Text("$c", fontSize = 24.sp)
+                    }
+                }
+            }
+            if (wrongTry) {
+                Spacer(Modifier.height(16.dp))
+                Text("Not quite — try again.", color = Coral)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ParentDashboard(speaker: Speaker, store: ProgressStore, onBack: () -> Unit) {
+    val version = store.version
+    val stats = remember(version) { WordBank.words.associate { it.id to store.stats(it.id) } }
+    val learned = stats.values.count { it.status == Status.LEARNED }
+    val practising = stats.values.count { it.status == Status.PRACTISING }
+    val notYet = stats.values.count { it.status == Status.NEW }
+    val needsPractice = WordBank.words.filter { stats[it.id]?.needsPractice == true }
+    var confirmReset by remember { mutableStateOf(false) }
+
+    Column(Modifier.fillMaxSize()) {
+        TopBar("Grown-ups", onBack, store.stars)
+        LazyColumn(
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            item {
+                Panel {
+                    Text("Progress", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(8.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                        Count("✅", learned, "Learned")
+                        Count("🔁", practising, "Practising")
+                        Count("🆕", notYet, "Not yet")
+                        Count("⭐", store.stars, "Stars")
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "A word counts as learned after 3 correct answers (saying it or finding it).",
+                        fontSize = 13.sp,
+                        color = Soft,
+                    )
+                }
+            }
+
+            item {
+                Panel {
+                    Text("Needs practice", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(6.dp))
+                    if (needsPractice.isEmpty()) {
+                        Text("Nothing yet — keep playing! 🎉", color = Soft)
+                    } else {
+                        Text(
+                            needsPractice.joinToString("   ") { "${it.emoji.ifEmpty { "🎨" }} ${it.text}" },
+                            fontSize = 18.sp,
+                        )
+                        Text(
+                            "Say It! and Find It! show these words first.",
+                            fontSize = 13.sp,
+                            color = Soft,
+                        )
+                    }
+                }
+            }
+
+            item {
+                Panel {
+                    Text("Settings", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Slower voice", Modifier.weight(1f), fontSize = 18.sp)
+                        Switch(
+                            checked = store.slowVoice,
+                            onCheckedChange = {
+                                store.changeSlowVoice(it)
+                                speaker.slow = it
+                                speaker.say("This is how I sound.")
+                            },
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedButton(onClick = { speaker.say("Hello! Can you say elephant?") }) {
+                            Text("Test voice")
+                        }
+                        Button(
+                            onClick = { confirmReset = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = Coral),
+                        ) { Text("Reset progress") }
+                    }
+                    if (speaker.failed) {
+                        Text(
+                            "No text-to-speech voice found. Install \"Speech Services by Google\" from the Play Store.",
+                            color = Coral,
+                            fontSize = 14.sp,
+                        )
+                    }
+                }
+            }
+
+            WordBank.categories.forEach { cat ->
+                item(key = "cat_${cat.id}") {
+                    Text(
+                        "${cat.emoji} ${cat.title}",
+                        Modifier.padding(top = 12.dp),
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Purple,
+                    )
+                }
+                items(WordBank.inCategory(cat.id), key = { it.id }) { w ->
+                    WordRow(w, stats[w.id] ?: WordStats())
+                }
+            }
+        }
+    }
+
+    if (confirmReset) {
+        AlertDialog(
+            onDismissRequest = { confirmReset = false },
+            title = { Text("Reset progress?") },
+            text = { Text("This clears all stars and word progress on this phone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    store.reset()
+                    confirmReset = false
+                }) { Text("Reset") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmReset = false }) { Text("Cancel") }
+            },
+        )
+    }
+}
+
+@Composable
+private fun Panel(content: @Composable () -> Unit) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color.White)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) { content() }
+}
+
+@Composable
+private fun Count(emoji: String, n: Int, label: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text("$emoji $n", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+        Text(label, fontSize = 13.sp, color = Soft)
+    }
+}
+
+@Composable
+private fun WordRow(w: Word, s: WordStats) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color.White)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        WordPicture(w, 44.dp)
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            Text(w.text, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(
+                "Heard ${s.heard} · Said ${s.sayGood}/${s.sayTries} · Found ${s.findGood}/${s.findGood + s.findMiss}",
+                fontSize = 13.sp,
+                color = Soft,
+            )
+        }
+        val (label, color) = when (s.status) {
+            Status.LEARNED -> "Learned" to Grass
+            Status.PRACTISING -> if (s.needsPractice) "Needs help" to Coral else "Practising" to Sun
+            Status.NEW -> "New" to Color(0xFFBDBDBD)
+        }
+        Text(
+            label,
+            Modifier
+                .clip(RoundedCornerShape(50))
+                .background(color)
+                .padding(horizontal = 10.dp, vertical = 4.dp),
+            fontSize = 13.sp,
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+        )
+    }
+}
