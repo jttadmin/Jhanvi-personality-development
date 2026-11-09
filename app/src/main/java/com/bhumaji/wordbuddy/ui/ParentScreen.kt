@@ -11,6 +11,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.layout.ContentScale
+import com.bhumaji.wordbuddy.data.Game
 import com.bhumaji.wordbuddy.data.ProfileStore
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
@@ -104,11 +105,11 @@ private fun ParentDashboard(app: AppServices, onBack: () -> Unit) {
     val speaker = app.speaker
     val store = app.store
     val version = store.version
-    val stats = remember(version) { WordBank.words.associate { it.id to store.stats(it.id) } }
+    val stats = remember(version) { WordBank.visibleWords.associate { it.id to store.stats(it.id) } }
     val learned = stats.values.count { it.status == Status.LEARNED }
     val practising = stats.values.count { it.status == Status.PRACTISING }
     val notYet = stats.values.count { it.status == Status.NEW }
-    val needsPractice = WordBank.words.filter { stats[it.id]?.needsPractice == true }
+    val needsPractice = WordBank.visibleWords.filter { stats[it.id]?.needsPractice == true }
     var confirmReset by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize()) {
@@ -135,6 +136,23 @@ private fun ParentDashboard(app: AppServices, onBack: () -> Unit) {
                         fontSize = 13.sp,
                         color = Soft,
                     )
+                }
+            }
+
+            item {
+                Panel {
+                    Text("Thinking games", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Game.entries.forEach { g ->
+                        val (good, miss) = remember(version, g) { store.quizScore(g.id) }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("${g.emoji} ${g.title}", Modifier.weight(1f), fontSize = 17.sp)
+                            Text(
+                                if (good + miss == 0) "not played yet" else "$good right first time / ${good + miss}",
+                                fontSize = 14.sp,
+                                color = Soft,
+                            )
+                        }
+                    }
                 }
             }
 
@@ -170,6 +188,16 @@ private fun ParentDashboard(app: AppServices, onBack: () -> Unit) {
                                 speaker.slow = it
                                 speaker.say("This is how I sound.")
                             },
+                        )
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Show easy words too", fontSize = 18.sp)
+                            Text("Colours, fruits, body parts and other basic groups", fontSize = 13.sp, color = Soft)
+                        }
+                        Switch(
+                            checked = store.includeEasy,
+                            onCheckedChange = { store.changeIncludeEasy(it) },
                         )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

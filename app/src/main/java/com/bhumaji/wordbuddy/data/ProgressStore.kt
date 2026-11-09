@@ -58,6 +58,30 @@ class ProgressStore(context: Context) {
     var slowVoice by mutableStateOf(prefs.getBoolean(KEY_SLOW, false))
         private set
 
+    /** Show the easy word groups (colours, fruits…) too. Off by default. */
+    var includeEasy by mutableStateOf(prefs.getBoolean(KEY_EASY, false))
+        private set
+
+    fun changeIncludeEasy(on: Boolean) {
+        includeEasy = on
+        WordBank.includeEasy = on
+        prefs.edit().putBoolean(KEY_EASY, on).apply()
+        version++
+    }
+
+    /** Right / wrong answers per thinking game. */
+    fun quizScore(gameId: String): Pair<Int, Int> {
+        val p = (prefs.getString("q_$gameId", null) ?: "0,0").split(",").map { it.toIntOrNull() ?: 0 }
+        return p.getOrElse(0) { 0 } to p.getOrElse(1) { 0 }
+    }
+
+    fun recordQuiz(gameId: String, correct: Boolean) {
+        val (good, miss) = quizScore(gameId)
+        val next = if (correct) "${good + 1},$miss" else "$good,${miss + 1}"
+        prefs.edit().putString("q_$gameId", next).apply()
+        version++
+    }
+
     fun stats(id: String): WordStats = WordStats.decode(prefs.getString("w_$id", null))
 
     private fun update(word: Word, change: (WordStats) -> WordStats) {
@@ -90,7 +114,7 @@ class ProgressStore(context: Context) {
     }
 
     fun reset() {
-        prefs.edit().clear().putBoolean(KEY_SLOW, slowVoice).apply()
+        prefs.edit().clear().putBoolean(KEY_SLOW, slowVoice).putBoolean(KEY_EASY, includeEasy).apply()
         stars = 0
         version++
     }
@@ -104,5 +128,6 @@ class ProgressStore(context: Context) {
         const val STICKER_COUNT = 12
         private const val KEY_STARS = "stars"
         private const val KEY_SLOW = "slow_voice"
+        private const val KEY_EASY = "include_easy"
     }
 }

@@ -22,23 +22,37 @@ data class Word(
     val targets: List<String> get() = listOf(text) + alsoAccept
 }
 
-data class Category(val id: String, val title: String, val emoji: String, val tint: Color)
+data class Category(
+    val id: String,
+    val title: String,
+    val emoji: String,
+    val tint: Color,
+    val easy: Boolean = false,
+)
 
 object WordBank {
     const val ALL = "all"
 
     val everything = Category(ALL, "Everything", "✨", Color(0xFF6C4AB6))
 
-    val categories = listOf(
-        Category("animals", "Animals", "🐾", Color(0xFFFF8A65)),
-        Category("fruits", "Fruits", "🍎", Color(0xFFEF5350)),
-        Category("colours", "Colours", "🎨", Color(0xFFAB47BC)),
-        Category("body", "My Body", "🙂", Color(0xFFFFA726)),
-        Category("vehicles", "Vehicles", "🚗", Color(0xFF42A5F5)),
-        Category("food", "Food", "🍞", Color(0xFF8D6E63)),
-        Category("home", "At Home", "🏠", Color(0xFF26A69A)),
-        Category("nature", "Nature", "🌳", Color(0xFF66BB6A)),
+    private val easyCategories = listOf(
+        Category("animals", "Animals", "🐾", Color(0xFFFF8A65), easy = true),
+        Category("fruits", "Fruits", "🍎", Color(0xFFEF5350), easy = true),
+        Category("colours", "Colours", "🎨", Color(0xFFAB47BC), easy = true),
+        Category("body", "My Body", "🙂", Color(0xFFFFA726), easy = true),
+        Category("vehicles", "Vehicles", "🚗", Color(0xFF42A5F5), easy = true),
+        Category("food", "Food", "🍞", Color(0xFF8D6E63), easy = true),
+        Category("home", "At Home", "🏠", Color(0xFF26A69A), easy = true),
+        Category("nature", "Nature", "🌳", Color(0xFF66BB6A), easy = true),
     )
+
+    /** Grown-ups setting. Off = only the advanced word groups are shown. */
+    var includeEasy = false
+
+    private val allCategories = AdvancedWords.categories + easyCategories
+
+    val categories: List<Category>
+        get() = allCategories.filter { includeEasy || !it.easy }
 
     private fun animal(id: String, e: String, s: String, alt: List<String> = emptyList()) =
         Word(id, id, e, s, "animals", alsoAccept = alt)
@@ -161,14 +175,22 @@ object WordBank {
         nature("rainbow", "🌈", "A rainbow has many colours."),
     )
 
+    /** Every word, easy and advanced. */
     val words: List<Word> =
-        animals + fruits + colours + bodyParts + vehicles + foods + homeThings + natureThings
+        AdvancedWords.words + animals + fruits + colours + bodyParts + vehicles + foods + homeThings + natureThings
+
+    /** Words in the groups currently shown. */
+    val visibleWords: List<Word>
+        get() {
+            val ids = categories.map { it.id }.toSet()
+            return words.filter { it.category in ids }
+        }
 
     fun inCategory(id: String): List<Word> =
-        if (id == ALL) words else words.filter { it.category == id }
+        if (id == ALL) visibleWords else words.filter { it.category == id }
 
     fun category(id: String): Category =
-        if (id == ALL) everything else categories.firstOrNull { it.id == id } ?: everything
+        if (id == ALL) everything else allCategories.firstOrNull { it.id == id } ?: everything
 
     /** What the app says in the Find It game. */
     fun findPrompt(w: Word): String =

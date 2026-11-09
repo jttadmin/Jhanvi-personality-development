@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import com.bhumaji.wordbuddy.data.ProfileStore
 import com.bhumaji.wordbuddy.data.ProgressStore
+import com.bhumaji.wordbuddy.data.WordBank
 import com.bhumaji.wordbuddy.speech.Listener
 import com.bhumaji.wordbuddy.speech.SoundFx
 import com.bhumaji.wordbuddy.speech.Speaker
@@ -18,6 +19,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val store = ProgressStore(this)
+        WordBank.includeEasy = store.includeEasy
         app = AppServices(
             speaker = Speaker(this).also { it.slow = store.slowVoice },
             listener = Listener(this),

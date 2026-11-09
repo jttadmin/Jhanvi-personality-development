@@ -32,6 +32,26 @@ class MatchTest {
     @Test fun differentWordIsMiss() =
         assertEquals(Match.Result.MISS, Match.check(listOf("dog"), listOf("banana")))
 
+    @Test fun fullSentenceIsGreat() = assertEquals(
+        Match.Result.GREAT,
+        Match.checkSentence("The giraffe has a very long neck.", listOf("the giraffe has a very long neck")),
+    )
+
+    @Test fun mostOfSentenceIsGreat() = assertEquals(
+        Match.Result.GREAT,
+        Match.checkSentence("The giraffe has a very long neck.", listOf("giraffe has a very long neck")),
+    )
+
+    @Test fun halfSentenceIsClose() = assertEquals(
+        Match.Result.CLOSE,
+        Match.checkSentence("The kangaroo carries her baby in a pouch.", listOf("kangaroo baby in a")),
+    )
+
+    @Test fun unrelatedSentenceIsMiss() = assertEquals(
+        Match.Result.MISS,
+        Match.checkSentence("The owl stays awake at night.", listOf("I want ice cream")),
+    )
+
     @Test fun nothingHeardIsMiss() =
         assertEquals(Match.Result.MISS, Match.check(listOf("dog"), emptyList()))
 }

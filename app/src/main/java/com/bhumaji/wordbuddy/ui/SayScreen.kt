@@ -33,6 +33,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -51,7 +52,7 @@ private enum class Phase { WAITING, PROMPTING, LISTENING, RESULT }
  * If the phone has no speech recogniser, a grown-up taps 👍 instead.
  */
 @Composable
-fun SayScreen(category: String, app: AppServices, onBack: () -> Unit) {
+fun SayScreen(category: String, app: AppServices, onBack: () -> Unit, sentenceMode: Boolean = false) {
     val speaker = app.speaker
     val listener = app.listener
     val store = app.store
@@ -59,6 +60,9 @@ fun SayScreen(category: String, app: AppServices, onBack: () -> Unit) {
     val words = remember(category) { store.practiceOrder(WordBank.inCategory(category)) }
     var index by remember { mutableIntStateOf(0) }
     val word = words[index % words.size]
+    // In Sentence Star she repeats the whole sentence instead of one word.
+    val target = if (sentenceMode) word.sentence else word.text
+    val reward = if (sentenceMode) 5 else 3
 
     var phase by remember { mutableStateOf(Phase.WAITING) }
     var mood by remember { mutableStateOf(Mood.IDLE) }
@@ -117,10 +121,11 @@ fun SayScreen(category: String, app: AppServices, onBack: () -> Unit) {
         level = 0f
         heard = results.firstOrNull()
         tries++
-        when (Match.check(word.targets, results)) {
+        val result = if (sentenceMode) Match.checkSentence(word.sentence, results) else Match.check(word.targets, results)
+        when (result) {
             Match.Result.GREAT -> {
                 store.recordSay(word, success = true)
-                celebrate(3, "You said ${word.text}!")
+                celebrate(reward, if (sentenceMode) "What a super sentence!" else "You said ${word.text}!")
             }
 
             Match.Result.CLOSE -> {
@@ -135,7 +140,7 @@ fun SayScreen(category: String, app: AppServices, onBack: () -> Unit) {
                     message = "Almost! Listen again… ⭐"
                     phase = Phase.RESULT
                     mood = Mood.TALK
-                    speaker.say("Almost!", "Listen.", word.text, "Now you!", onDone = { relisten++ })
+                    speaker.say("Almost!", "Listen.", target, "Now you!", onDone = { relisten++ })
                 }
             }
 
@@ -149,7 +154,7 @@ fun SayScreen(category: String, app: AppServices, onBack: () -> Unit) {
                 } else {
                     message = "Let's try again!"
                     phase = Phase.RESULT
-                    speaker.say("Let's try again.", "Listen.", word.text, onDone = { relisten++ })
+                    speaker.say("Let's try again.", "Listen.", target, onDone = { relisten++ })
                 }
             }
         }
@@ -180,7 +185,7 @@ fun SayScreen(category: String, app: AppServices, onBack: () -> Unit) {
                 when (code) {
                     Listener.ERROR_NO_MATCH, Listener.ERROR_SPEECH_TIMEOUT -> {
                         message = "I didn't hear you. Tap the 🎤!"
-                        speaker.say("I didn't hear you.", "Say", word.text)
+                        speaker.say("I didn't hear you.", "Say", target)
                     }
 
                     Listener.ERROR_PERMISSION -> {
@@ -203,8 +208,8 @@ fun SayScreen(category: String, app: AppServices, onBack: () -> Unit) {
         heard = null
         starsWon = 0
         tries = 0
-        message = "Can you say…"
-        speaker.say("Can you say", word.text, onDone = {
+        message = if (sentenceMode) "Say after me…" else "Can you say…"
+        speaker.say(if (sentenceMode) "Say after me." else "Can you say", target, onDone = {
             if (canRecognize && hasMic) {
                 startListening()
             } else {
@@ -231,7 +236,7 @@ fun SayScreen(category: String, app: AppServices, onBack: () -> Unit) {
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
-            TopBar(WordBank.category(category).title, onBack, store.stars)
+            TopBar(if (sentenceMode) "Sentence Star" else WordBank.category(category).title, onBack, store.stars)
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -255,13 +260,24 @@ fun SayScreen(category: String, app: AppServices, onBack: () -> Unit) {
                         .shadow(8.dp, RoundedCornerShape(36.dp))
                         .clip(RoundedCornerShape(36.dp))
                         .background(Color.White)
-                        .clickable { speaker.say(word.text) }
+                        .clickable { speaker.say(target) }
                         .padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
-                    WordPicture(word, pictureSize)
-                    WordText(word.text)
+                    WordPicture(word, if (sentenceMode) pictureSize * 0.7f else pictureSize)
+                    if (sentenceMode) {
+                        Text(
+                            word.sentence,
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Purple,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 36.sp,
+                        )
+                    } else {
+                        WordText(word.text)
+                    }
                     Text(
                         (1..3).joinToString(" ") { if (it <= starsWon) "⭐" else "☆" },
                         fontSize = 34.sp,
@@ -294,7 +310,7 @@ fun SayScreen(category: String, app: AppServices, onBack: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                RoundButton("🐢", Sun, { speaker.say(word.text, extraSlow = true) })
+                RoundButton("🐢", Sun, { speaker.say(target, extraSlow = true) })
                 if (canRecognize) {
                     RoundButton(
                         "🎤",
@@ -311,7 +327,7 @@ fun SayScreen(category: String, app: AppServices, onBack: () -> Unit) {
                         {
                             if (phase != Phase.RESULT) {
                                 store.recordSay(word, success = true)
-                                celebrate(3, "")
+                                celebrate(reward, "")
                             }
                         },
                         size = 100.dp,

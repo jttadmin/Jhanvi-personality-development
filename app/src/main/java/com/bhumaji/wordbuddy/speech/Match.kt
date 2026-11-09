@@ -33,6 +33,27 @@ object Match {
         return if (best >= 0.6) Result.CLOSE else Result.MISS
     }
 
+    /**
+     * For Sentence Star: what share of the sentence's words did she say?
+     * Each word may be slightly off (≥ 75% similar). 75%+ = great, 45%+ = close.
+     */
+    fun checkSentence(sentence: String, heard: List<String>): Result {
+        val want = normalize(sentence).split(" ").filter { it.isNotEmpty() }
+        if (want.isEmpty()) return Result.MISS
+        var best = 0.0
+        for (raw in heard) {
+            val got = normalize(raw).split(" ").filter { it.isNotEmpty() }
+            if (got.isEmpty()) continue
+            val hits = want.count { w -> got.any { g -> g == w || similarity(g, w) >= 0.75 } }
+            best = maxOf(best, hits.toDouble() / want.size)
+        }
+        return when {
+            best >= 0.75 -> Result.GREAT
+            best >= 0.45 -> Result.CLOSE
+            else -> Result.MISS
+        }
+    }
+
     /** Whole-word match, so a short target like "i" doesn't match inside "fish". */
     private fun isSaid(heardWords: List<String>, target: String): Boolean {
         val t = target.split(" ")

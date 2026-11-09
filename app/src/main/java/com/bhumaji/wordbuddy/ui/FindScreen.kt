@@ -50,7 +50,12 @@ fun FindScreen(category: String, app: AppServices, onBack: () -> Unit) {
 
     val options = remember(round) {
         val source = if (pool.size >= 3) pool else WordBank.words
-        (source.filter { it.id != target.id }.shuffled().take(2) + target).shuffled()
+        val others = source
+            .filter { it.id != target.id && it.emoji != target.emoji }
+            .shuffled()
+            .distinctBy { it.emoji }
+            .take(2)
+        (others + target).shuffled()
     }
     var wrong by remember(round) { mutableStateOf(setOf<String>()) }
     var solved by remember(round) { mutableStateOf(false) }
