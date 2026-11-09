@@ -76,9 +76,12 @@ class ProgressStore(context: Context) {
         if (correct) it.copy(findGood = it.findGood + 1) else it.copy(findMiss = it.findMiss + 1)
     }
 
-    fun addStars(n: Int) {
+    /** Adds stars; returns true if this unlocked a new sticker. */
+    fun addStars(n: Int): Boolean {
+        val before = stars / STARS_PER_STICKER
         stars += n
         prefs.edit().putInt(KEY_STARS, stars).apply()
+        return stars / STARS_PER_STICKER > before && before < STICKER_COUNT
     }
 
     fun changeSlowVoice(on: Boolean) {
@@ -96,8 +99,10 @@ class ProgressStore(context: Context) {
     fun practiceOrder(words: List<Word>): List<Word> =
         words.shuffled().sortedBy { stats(it.id).successes.coerceAtMost(3) }
 
-    private companion object {
-        const val KEY_STARS = "stars"
-        const val KEY_SLOW = "slow_voice"
+    companion object {
+        const val STARS_PER_STICKER = 10
+        const val STICKER_COUNT = 12
+        private const val KEY_STARS = "stars"
+        private const val KEY_SLOW = "slow_voice"
     }
 }

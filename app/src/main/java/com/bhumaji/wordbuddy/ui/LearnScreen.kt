@@ -27,19 +27,25 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.bhumaji.wordbuddy.data.ProgressStore
 import com.bhumaji.wordbuddy.data.WordBank
-import com.bhumaji.wordbuddy.speech.Speaker
 
 /** Flashcards: picture + word. Tap to hear it, swipe or use arrows to move. */
 @Composable
-fun LearnScreen(category: String, speaker: Speaker, store: ProgressStore, onBack: () -> Unit) {
+fun LearnScreen(category: String, app: AppServices, onBack: () -> Unit) {
+    val speaker = app.speaker
+    val store = app.store
     val words = remember(category) { WordBank.inCategory(category) }
     var index by remember(category) { mutableIntStateOf(0) }
     val word = words[index % words.size]
 
-    val next = { index = (index + 1) % words.size }
-    val prev = { index = (index - 1 + words.size) % words.size }
+    val next = {
+        app.sfx.pop()
+        index = (index + 1) % words.size
+    }
+    val prev = {
+        app.sfx.pop()
+        index = (index - 1 + words.size) % words.size
+    }
     fun speak(extraSlow: Boolean = false) = speaker.say(word.text, word.sentence, extraSlow = extraSlow)
 
     LaunchedEffect(word.id, speaker.ready) {

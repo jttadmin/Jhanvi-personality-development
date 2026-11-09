@@ -10,6 +10,9 @@ It has no backend, no accounts, no ads and **no INTERNET permission**. Everythin
 | 📚 **Learn Words** | A big picture plus the word. The app says the word and a short sentence ("The dog says woof woof."). Tap to hear it again, 🐢 to hear it slowly, swipe or use the arrows to move. |
 | 🎤 **Say It!** | The app says "Can you say… dog?" and then listens. Saying it right earns ⭐⭐⭐. A close try earns ⭐, and the app repeats the word and listens again. After 3 tries it says "Good trying!" and moves on. It never says "wrong". |
 | 🔍 **Find It!** | "Find the elephant!" She taps one of 3 pictures. If she taps the wrong one, the app names what she tapped ("That's the lion") and asks again, so the mistake teaches a word too. |
+| 🧒 **Her buddy** | Add her name and up to 4 photos (Grown-ups page). The app crops around her face on the phone and turns it into an animated buddy that talks, listens and jumps when she gets it right. With no photo, a smiley mascot is used. |
+| 🏆 **My Stickers** | Every 10 ⭐ unlocks a dress-up sticker of her (👑 Princess, 🦄 Unicorn, 🚀 Astronaut…), 12 in total. |
+| 🎉 **Fun extras** | Confetti, sound effects, bouncy buttons, and praise with her name ("Great job, Jhanvi!"). |
 | 🔒 **Grown-ups** | Behind a times-table question. Shows learned, practising and new words, a "needs practice" list, per-word counts, a slower-voice switch and a progress reset. |
 
 There are 75 words in 8 groups: animals, fruits, colours, body, vehicles (including auto 🛺), food, home and nature.

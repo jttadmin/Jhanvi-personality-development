@@ -1,5 +1,18 @@
 package com.bhumaji.wordbuddy.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.layout.ContentScale
+import com.bhumaji.wordbuddy.data.ProfileStore
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -33,17 +46,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.bhumaji.wordbuddy.data.ProgressStore
 import com.bhumaji.wordbuddy.data.Status
 import com.bhumaji.wordbuddy.data.Word
 import com.bhumaji.wordbuddy.data.WordBank
 import com.bhumaji.wordbuddy.data.WordStats
-import com.bhumaji.wordbuddy.speech.Speaker
 
 @Composable
-fun ParentScreen(speaker: Speaker, store: ProgressStore, onBack: () -> Unit) {
+fun ParentScreen(app: AppServices, onBack: () -> Unit) {
     var unlocked by remember { mutableStateOf(false) }
-    if (unlocked) ParentDashboard(speaker, store, onBack) else ParentGate(onBack) { unlocked = true }
+    if (unlocked) ParentDashboard(app, onBack) else ParentGate(onBack) { unlocked = true }
 }
 
 /** A small times-table question keeps a 4-year-old out of the settings. */
@@ -89,7 +100,9 @@ private fun ParentGate(onBack: () -> Unit, onPass: () -> Unit) {
 }
 
 @Composable
-private fun ParentDashboard(speaker: Speaker, store: ProgressStore, onBack: () -> Unit) {
+private fun ParentDashboard(app: AppServices, onBack: () -> Unit) {
+    val speaker = app.speaker
+    val store = app.store
     val version = store.version
     val stats = remember(version) { WordBank.words.associate { it.id to store.stats(it.id) } }
     val learned = stats.values.count { it.status == Status.LEARNED }
@@ -104,6 +117,8 @@ private fun ParentDashboard(speaker: Speaker, store: ProgressStore, onBack: () -
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            item { BuddySetup(app) }
+
             item {
                 Panel {
                     Text("Progress", fontSize = 22.sp, fontWeight = FontWeight.Bold)
@@ -266,5 +281,91 @@ private fun WordRow(w: Word, s: WordStats) {
             color = Color.White,
             fontWeight = FontWeight.Bold,
         )
+    }
+}
+
+/** Her name and photos: used for the animated buddy, praise and stickers. Stays on this phone. */
+@Composable
+private fun BuddySetup(app: AppServices) {
+    val profile = app.profile
+    val scope = rememberCoroutineScope()
+    var busy by remember { mutableStateOf(false) }
+    var note by remember { mutableStateOf<String?>(null) }
+    val picker = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickMultipleVisualMedia(ProfileStore.MAX_PHOTOS)
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            busy = true
+            scope.launch {
+                val added = profile.addPhotos(uris)
+                busy = false
+                note = if (added == 0) "Couldn't read that photo. Try another one." else null
+                if (added > 0) {
+                    app.sfx.tada()
+                    app.speaker.say(app.cheer())
+                }
+            }
+        }
+    }
+
+    Panel {
+        Text("Her buddy", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+        Text(
+            "Add her name and up to 4 clear photos of her face. The app crops around her face " +
+                "and turns it into her animated buddy and dress-up stickers. Photos stay only on this phone.",
+            fontSize = 13.sp,
+            color = Soft,
+        )
+        OutlinedTextField(
+            value = profile.name,
+            onValueChange = { profile.changeName(it) },
+            label = { Text("Her name") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            profile.photos.forEachIndexed { i, photo ->
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Image(
+                        photo,
+                        contentDescription = "Photo ${i + 1}",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(CircleShape),
+                    )
+                    Row {
+                        Text(
+                            "↻",
+                            Modifier
+                                .clickable { scope.launch { profile.rotate(i) } }
+                                .padding(6.dp),
+                            fontSize = 20.sp,
+                        )
+                        Text(
+                            "✕",
+                            Modifier
+                                .clickable { scope.launch { profile.remove(i) } }
+                                .padding(6.dp),
+                            fontSize = 20.sp,
+                            color = Coral,
+                        )
+                    }
+                }
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Button(
+                onClick = {
+                    picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                },
+                enabled = profile.canAddMore && !busy,
+            ) { Text(if (profile.photos.isEmpty()) "Add her photos" else "Add more photos") }
+            if (busy) CircularProgressIndicator(Modifier.size(28.dp))
+        }
+        note?.let { Text(it, color = Coral, fontSize = 14.sp) }
     }
 }

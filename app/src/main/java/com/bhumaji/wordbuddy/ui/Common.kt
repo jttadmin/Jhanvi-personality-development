@@ -1,6 +1,14 @@
 package com.bhumaji.wordbuddy.ui
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -55,10 +63,16 @@ fun WordBuddyTheme(content: @Composable () -> Unit) {
 }
 
 private val praises = listOf(
-    "Wow!", "Super!", "Great job!", "Well done!", "Awesome!", "You did it!", "Brilliant!", "Yay!",
+    "Wow", "Super", "Great job", "Well done", "Awesome", "You did it", "Brilliant", "Yay", "Superstar",
 )
 
-fun praise(): String = praises.random()
+/** "Great job, Jhanvi!" — or just "Great job!" when no name is set. */
+fun praise(name: String = ""): String {
+    val p = praises.random()
+    return if (name.isBlank()) "$p!" else "$p, ${name.trim()}!"
+}
+
+val PlayBackground = Brush.verticalGradient(listOf(Color(0xFFFFF1D0), Color(0xFFFFF8E7), Color(0xFFE1F5FE)))
 
 @Composable
 fun TopBar(title: String, onBack: () -> Unit, stars: Int? = null) {
@@ -147,12 +161,19 @@ fun BigTile(
     subtitle: String? = null,
     onClick: () -> Unit,
 ) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed) 0.93f else 1f, label = "press")
     Column(
         modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .shadow(6.dp, RoundedCornerShape(28.dp))
             .clip(RoundedCornerShape(28.dp))
-            .background(color)
-            .clickable(onClick = onClick)
+            .background(Brush.verticalGradient(listOf(color.copy(alpha = 0.85f), color)))
+            .clickable(interactionSource = interaction, indication = LocalIndication.current, onClick = onClick)
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,

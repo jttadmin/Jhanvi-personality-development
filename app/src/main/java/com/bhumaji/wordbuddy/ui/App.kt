@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -18,7 +19,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,11 +33,24 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.bhumaji.wordbuddy.data.ProfileStore
 import com.bhumaji.wordbuddy.data.ProgressStore
 import com.bhumaji.wordbuddy.data.Status
 import com.bhumaji.wordbuddy.data.WordBank
 import com.bhumaji.wordbuddy.speech.Listener
+import com.bhumaji.wordbuddy.speech.SoundFx
 import com.bhumaji.wordbuddy.speech.Speaker
+
+/** Everything the screens need, created once in MainActivity. */
+class AppServices(
+    val speaker: Speaker,
+    val listener: Listener,
+    val store: ProgressStore,
+    val profile: ProfileStore,
+    val sfx: SoundFx,
+) {
+    fun cheer(): String = praise(profile.name)
+}
 
 enum class Mode(val title: String, val emoji: String) {
     LEARN("Learn Words", "📚"),
@@ -49,6 +62,7 @@ sealed interface Screen {
     data object Home : Screen
     data class Pick(val mode: Mode) : Screen
     data class Play(val mode: Mode, val category: String) : Screen
+    data object Stickers : Screen
     data object Parent : Screen
 }
 
@@ -58,59 +72,70 @@ private fun parentOf(s: Screen): Screen = when (s) {
 }
 
 @Composable
-fun WordBuddyApp(speaker: Speaker, listener: Listener, store: ProgressStore) {
+fun WordBuddyApp(app: AppServices) {
     var screen by remember { mutableStateOf<Screen>(Screen.Home) }
     var greeted by remember { mutableStateOf(false) }
     val back = { screen = parentOf(screen) }
 
     BackHandler(enabled = screen != Screen.Home) { back() }
 
-    Surface(Modifier.fillMaxSize(), color = Cream) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(PlayBackground)
+    ) {
         when (val s = screen) {
             Screen.Home -> HomeScreen(
-                speaker = speaker,
-                store = store,
+                app = app,
                 greeted = greeted,
                 onGreeted = { greeted = true },
                 onPick = { screen = Screen.Pick(it) },
+                onStickers = { screen = Screen.Stickers },
                 onParent = { screen = Screen.Parent },
             )
 
-            is Screen.Pick -> CategoryScreen(s.mode, speaker, store, onBack = back) { cat ->
+            is Screen.Pick -> CategoryScreen(s.mode, app, onBack = back) { cat ->
                 screen = Screen.Play(s.mode, cat)
             }
 
             is Screen.Play -> when (s.mode) {
-                Mode.LEARN -> LearnScreen(s.category, speaker, store, onBack = back)
-                Mode.SAY -> SayScreen(s.category, speaker, listener, store, onBack = back)
-                Mode.FIND -> FindScreen(s.category, speaker, store, onBack = back)
+                Mode.LEARN -> LearnScreen(s.category, app, onBack = back)
+                Mode.SAY -> SayScreen(s.category, app, onBack = back)
+                Mode.FIND -> FindScreen(s.category, app, onBack = back)
             }
 
-            Screen.Parent -> ParentScreen(speaker, store, onBack = back)
+            Screen.Stickers -> StickerScreen(app, onBack = back)
+            Screen.Parent -> ParentScreen(app, onBack = back)
         }
     }
 }
 
 @Composable
 fun HomeScreen(
-    speaker: Speaker,
-    store: ProgressStore,
+    app: AppServices,
     greeted: Boolean,
     onGreeted: () -> Unit,
     onPick: (Mode) -> Unit,
+    onStickers: () -> Unit,
     onParent: () -> Unit,
 ) {
-    LaunchedEffect(speaker.ready) {
-        if (speaker.ready && !greeted) {
+    val name = app.profile.name.trim()
+    var talking by remember { mutableStateOf(false) }
+    val hello = if (name.isBlank()) "Hello! Let's play!" else "Hi $name! Let's play!"
+
+    LaunchedEffect(app.speaker.ready) {
+        if (app.speaker.ready && !greeted) {
             onGreeted()
-            speaker.say("Hello!", "Let's learn some words!")
+            talking = true
+            app.speaker.say(hello, "What shall we learn today?", onDone = { talking = false })
         }
     }
+
     val colors = mapOf(Mode.LEARN to Purple, Mode.SAY to Coral, Mode.FIND to Grass)
     val subtitles = mapOf(
-        Mode.LEARN to "Tap a picture and listen",
-        Mode.SAY to "Say the word like me",
-        Mode.FIND to "Tap the right picture",
+        Mode.LEARN to "Look and listen",
+        Mode.SAY to "Say it like me",
+        Mode.FIND to "Tap the picture",
     )
 
     Column(
@@ -124,13 +149,33 @@ fun HomeScreen(
             Text(
                 "Word Buddy",
                 Modifier.weight(1f),
-                fontSize = 34.sp,
+                fontSize = 30.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = Purple,
             )
-            StarBadge(store.stars)
+            StarBadge(app.store.stars)
         }
-        Spacer(Modifier.height(16.dp))
+
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BuddyAvatar(
+                app.profile.photo(0),
+                if (talking) Mood.TALK else Mood.IDLE,
+                120.dp,
+                Modifier.clickable {
+                    app.sfx.pop()
+                    talking = true
+                    app.speaker.say(hello, onDone = { talking = false })
+                },
+            )
+            SpeechBubble(hello, Modifier.weight(1f))
+        }
+
+        Spacer(Modifier.height(8.dp))
         Mode.entries.forEach { mode ->
             BigTile(
                 mode.emoji,
@@ -138,15 +183,30 @@ fun HomeScreen(
                 colors.getValue(mode),
                 Modifier
                     .fillMaxWidth()
-                    .height(150.dp),
+                    .height(130.dp),
                 subtitles[mode],
             ) {
-                speaker.say(mode.title)
+                app.sfx.pop()
+                app.speaker.say(mode.title)
                 onPick(mode)
             }
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(14.dp))
         }
-        Spacer(Modifier.height(8.dp))
+        BigTile(
+            "🏆",
+            "My Stickers",
+            Sun,
+            Modifier
+                .fillMaxWidth()
+                .height(110.dp),
+            "Collect them with stars",
+        ) {
+            app.sfx.pop()
+            app.speaker.say("My stickers!")
+            onStickers()
+        }
+
+        Spacer(Modifier.height(20.dp))
         Text(
             "🔒 Grown-ups",
             Modifier
@@ -163,15 +223,14 @@ fun HomeScreen(
 @Composable
 fun CategoryScreen(
     mode: Mode,
-    speaker: Speaker,
-    store: ProgressStore,
+    app: AppServices,
     onBack: () -> Unit,
     onChoose: (String) -> Unit,
 ) {
-    val version = store.version
+    val version = app.store.version
     val all = listOf(WordBank.everything) + WordBank.categories
     Column(Modifier.fillMaxSize()) {
-        TopBar(mode.title, onBack, store.stars)
+        TopBar(mode.title, onBack, app.store.stars)
         LazyVerticalGrid(
             columns = GridCells.Adaptive(160.dp),
             contentPadding = PaddingValues(16.dp),
@@ -181,7 +240,7 @@ fun CategoryScreen(
             items(all, key = { it.id }) { cat ->
                 val words = WordBank.inCategory(cat.id)
                 val learned = remember(version, cat.id) {
-                    words.count { store.stats(it.id).status == Status.LEARNED }
+                    words.count { app.store.stats(it.id).status == Status.LEARNED }
                 }
                 BigTile(
                     cat.emoji,
@@ -192,7 +251,8 @@ fun CategoryScreen(
                         .height(150.dp),
                     "⭐ $learned / ${words.size}",
                 ) {
-                    speaker.say(cat.title)
+                    app.sfx.pop()
+                    app.speaker.say(cat.title)
                     onChoose(cat.id)
                 }
             }
