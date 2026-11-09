@@ -71,11 +71,10 @@ Stack: Kotlin 2.0, Jetpack Compose (Material 3), AGP 8.5, minSdk 26 (Android 8+)
 
 ## Releases & versions
 - Every push to `main` builds a test APK (Actions → *Build APK* → Artifacts).
-- To publish a version, tag it. The **Release** workflow builds a signed APK and attaches it to a GitHub Release:
-  ```bash
-  git tag v3.1.0 && git push origin v3.1.0
-  ```
-  The tag sets the app version: `v3.1.0` → versionName `3.1.0`, versionCode `30100`. Always go up.
+- To publish a version, change the `VERSION` file on `main` (e.g. `3.1.0` → `3.2.0`) and add a
+  `## v3.2.0` section to `CHANGELOG.md`. The **Release** workflow builds a signed APK and publishes
+  GitHub Release `v3.2.0` with `WordBuddy-v3.2.0.apk` attached. Pushing a tag `v3.2.0` works too.
+  The version sets the app version: `3.2.0` → versionName `3.2.0`, versionCode `30200`. Always go up.
 - All releases are signed with the same key (repo secrets `SIGNING_KEYSTORE_BASE64` + `SIGNING_PASSWORD`),
   so a new version installs **over** the old one and keeps her stars, photos and progress.
   Keep a backup of the keystore. If it's lost, future versions can't update the installed app.
